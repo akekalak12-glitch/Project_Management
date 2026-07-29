@@ -1,10 +1,8 @@
 export const runtime = 'edge';
 
-import { NextResponse } from 'next/server';
-
 export async function GET() {
-  return new Response(JSON.stringify({ status: "ok", time: new Date().toISOString() }), {
+  return new Response("Hello Cloudflare Workers Edge!", {
     status: 200,
-    headers: { 'Content-Type': 'application/json' }
+    headers: { "content-type": "text/plain" }
   });
 }
