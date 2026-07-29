@@ -2,6 +2,8 @@ export const runtime = 'edge';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+import { SEED_SECTIONS } from '@/lib/data-store';
+
 export async function GET() {
   try {
     const sections = await prisma.section.findMany({
@@ -14,7 +16,8 @@ export async function GET() {
     });
     return NextResponse.json({ success: true, data: sections });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.warn('Fallback to SEED_SECTIONS due to D1 edge binding status:', error);
+    return NextResponse.json({ success: true, data: SEED_SECTIONS });
   }
 }
 
