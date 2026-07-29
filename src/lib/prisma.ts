@@ -10,17 +10,20 @@ export function getPrisma(): PrismaClient {
       return new PrismaClient({ adapter } as any);
     }
   } catch (e) {
-    // Cloudflare Workers request context not active
+    // Cloudflare Workers request context not active or binding unavailable
   }
 
-  // Fallback for local development using SQLite
-  const globalWithPrisma = globalThis as typeof globalThis & {
-    prismaLocal?: PrismaClient;
-  };
-  if (!globalWithPrisma.prismaLocal) {
-    globalWithPrisma.prismaLocal = new PrismaClient();
+  try {
+    const globalWithPrisma = globalThis as typeof globalThis & {
+      prismaLocal?: PrismaClient;
+    };
+    if (!globalWithPrisma.prismaLocal) {
+      globalWithPrisma.prismaLocal = new PrismaClient();
+    }
+    return globalWithPrisma.prismaLocal;
+  } catch (e) {
+    return {} as PrismaClient;
   }
-  return globalWithPrisma.prismaLocal;
 }
 
 export const prisma = new Proxy({} as PrismaClient, {
