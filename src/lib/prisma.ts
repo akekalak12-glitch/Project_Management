@@ -1,31 +1,33 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaD1 } from '@prisma/adapter-d1';
+// Static import works in both Node.js and Edge runtimes;
+// getRequestContext() itself only works inside a Cloudflare Workers request.
+import { getRequestContext } from '@cloudflare/next-on-pages';
 
 declare const globalThis: {
   prismaLocal: PrismaClient | undefined;
 } & typeof global;
 
 /**
- * Get the Cloudflare D1 binding from the request context.
- * Works only when running inside @cloudflare/next-on-pages edge runtime.
+ * Returns the Cloudflare D1 binding from the current Workers request context,
+ * or null when running outside of a Cloudflare environment (local dev).
  */
 function getD1Binding(): any {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { getRequestContext } = require('@cloudflare/next-on-pages');
     const ctx = getRequestContext();
     return ctx?.env?.DB ?? null;
   } catch {
+    // Not in a Cloudflare Workers request context (e.g., local Next.js dev)
     return null;
   }
 }
 
 export function getPrisma(): PrismaClient {
-  // On Cloudflare Pages / Workers: use D1 adapter
   const d1 = getD1Binding();
+
   if (d1) {
+    // Production: Cloudflare D1 via PrismaD1 adapter
     const adapter = new PrismaD1(d1);
-    // Per-request client is fine on edge (no long-lived singleton needed)
     return new PrismaClient({ adapter } as any);
   }
 
