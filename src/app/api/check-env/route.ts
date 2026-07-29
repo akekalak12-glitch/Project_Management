@@ -1,29 +1,29 @@
-export const runtime = 'edge';
-
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const envKeys = Object.keys(process.env);
-    const dbType = typeof (process.env as any).DB;
-    const hasDB = !!(process.env as any).DB;
+    let d1BindingFound = false;
+    let d1Error = null;
 
-    // Check if it is a D1 database by checking for prepare/exec functions
-    const isD1 = hasDB && typeof (process.env as any).DB.prepare === 'function';
+    try {
+      const { getRequestContext } = await import('@cloudflare/next-on-pages');
+      const ctx = getRequestContext();
+      d1BindingFound = !!(ctx && ctx.env && ctx.env.DB);
+    } catch (e: any) {
+      d1Error = e.message;
+    }
 
     return NextResponse.json({
       success: true,
-      message: "Environment variables check",
-      envKeys,
-      dbType,
-      hasDB,
-      isD1
+      runtime: 'edge',
+      d1BindingFound,
+      d1Error,
+      timestamp: new Date().toISOString()
     });
   } catch (error: any) {
     return NextResponse.json({
       success: false,
-      message: "Error in check-env",
       error: error.message
-    });
+    }, { status: 500 });
   }
 }
