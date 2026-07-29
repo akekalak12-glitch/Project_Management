@@ -1,41 +1,45 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaD1 } from '@prisma/adapter-d1';
 
-let prismaInstance: any = null;
+declare const globalThis: {
+  prismaLocal: PrismaClient | undefined;
+} & typeof global;
 
-function getPrismaInstance(): PrismaClient {
-  if (prismaInstance) return prismaInstance;
-
-  // 1. Check if process.env.DB has the Cloudflare D1 database binding
-  const d1 = (process.env as any).DB;
-  if (d1) {
-    try {
-      const adapter = new PrismaD1(d1);
-      prismaInstance = new PrismaClient({ adapter });
-      return prismaInstance;
-    } catch (err) {
-      console.error('Failed to initialize PrismaD1 with process.env.DB:', err);
-    }
+/**
+ * Get the Cloudflare D1 binding from the request context.
+ * Works only when running inside @cloudflare/next-on-pages edge runtime.
+ */
+function getD1Binding(): any {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getRequestContext } = require('@cloudflare/next-on-pages');
+    const ctx = getRequestContext();
+    return ctx?.env?.DB ?? null;
+  } catch {
+    return null;
   }
-
-  // 2. Fallback to local SQLite client (development singleton running in Node.js)
-  const globalForPrisma = globalThis as unknown as {
-    prisma: PrismaClient | undefined;
-  };
-
-  if (!globalForPrisma.prisma) {
-    globalForPrisma.prisma = new PrismaClient({
-      log: ['error', 'warn'],
-    });
-  }
-  prismaInstance = globalForPrisma.prisma;
-  return prismaInstance;
 }
 
-// Proxy wrapper delegates all operations dynamically to the resolved PrismaClient instance
+export function getPrisma(): PrismaClient {
+  // On Cloudflare Pages / Workers: use D1 adapter
+  const d1 = getD1Binding();
+  if (d1) {
+    const adapter = new PrismaD1(d1);
+    // Per-request client is fine on edge (no long-lived singleton needed)
+    return new PrismaClient({ adapter } as any);
+  }
+
+  // Local development: reuse a global singleton to avoid too many connections
+  if (!globalThis.prismaLocal) {
+    globalThis.prismaLocal = new PrismaClient({ log: ['error', 'warn'] });
+  }
+  return globalThis.prismaLocal;
+}
+
+// Proxy so callers can keep using `prisma.user.findMany()` etc.
 export const prisma = new Proxy({} as PrismaClient, {
-  get(target, prop, receiver) {
-    const instance = getPrismaInstance();
+  get(_target, prop, receiver) {
+    const instance = getPrisma();
     const value = Reflect.get(instance, prop, receiver);
     if (typeof value === 'function') {
       return value.bind(instance);
