@@ -1,0 +1,422 @@
+[
+  {
+    "id": "8b1f19e0-959c-4c6f-9f4e-fcc4ee8466d4",
+    "name": "นายเอกลักษณ์ เฉลิมชีพ",
+    "email": "akekalakch@treasury.go.th",
+    "roleTitle": "ผู้อำนวยการกอง",
+    "sectionName": null
+  },
+  {
+    "id": "c52348f2-0ae8-4105-94e0-11394881f933",
+    "name": "อาจารย์ วิทยา ปัญญาประเสริฐ (ผู้เชี่ยวชาญ)",
+    "email": "wittaya.advisor@organization.go.th",
+    "roleTitle": "ผู้เชี่ยวชาญ",
+    "sectionName": "ส่วนวิจัยและพัฒนามาตรฐานการประเมินราคาทรัพย์สิน"
+  },
+  {
+    "id": "5d574677-b630-4c90-8dfb-c988da64dc63",
+    "name": "นาย ณรงค์ศักดิ์ สุขเจริญ (ผอ.ส่วนนวัตกรรม)",
+    "email": "po.digital@organization.go.th",
+    "roleTitle": "ผู้อำนวยการส่วน",
+    "sectionName": "ส่วนจัดการฐานข้อมูล"
+  },
+  {
+    "id": "a5885851-ae60-4d9c-a066-7d7cd2e614f8",
+    "name": "นางสาว วรนิษฐา",
+    "email": "po.infra@organization.go.th",
+    "roleTitle": "ผู้อำนวยการส่วน",
+    "sectionName": "ส่วนเลขานุการคณะกรรมการประเมินราคาทรัพย์สินเพื่อประโยชน์แห่งรัฐ"
+  },
+  {
+    "id": "e96d347f-f7fe-4520-af25-1d0b256cc2c5",
+    "name": "นาย ชัยวัฒน์ รัตนมนตรี (ผอ.ส่วนข้อมูลองค์กร)",
+    "email": "po.data@organization.go.th",
+    "roleTitle": "ผู้อำนวยการส่วน",
+    "sectionName": "ส่วนวิจัยและพัฒนามาตรฐานการประเมินราคาทรัพย์สิน"
+  },
+  {
+    "id": "bcd99fa1-fb63-477e-9491-b6b8d92662cd",
+    "name": "นายกฤษกร คนซื่อ",
+    "email": "po.sec@organization.go.th",
+    "roleTitle": "ผู้อำนวยการส่วน",
+    "sectionName": "ศูนย์บริหารจัดการราคาประเมินทรัพย์สินแห่งชาติ"
+  },
+  {
+    "id": "8a4cb54b-7295-4608-a620-f23451c589d1",
+    "name": "นางสาวสุจิตรา รอดนิรังค์",
+    "email": "suphachai.sm@organization.go.th",
+    "roleTitle": "หัวหน้าฝ่าย",
+    "sectionName": "ฝ่ายบริหารงานทั่วไป"
+  },
+  {
+    "id": "229a4bde-6d81-4706-840b-efb433e49598",
+    "name": "เจ้าหน้าที่ 1 (เจ้าหน้าที่ DIGITAL)",
+    "email": "staff.1@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนจัดการฐานข้อมูล"
+  },
+  {
+    "id": "7624dd39-68fe-417d-ada5-9e630ebc0c82",
+    "name": "เจ้าหน้าที่ 2 (เจ้าหน้าที่ INFRA)",
+    "email": "staff.2@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนเลขานุการคณะกรรมการประเมินราคาทรัพย์สินเพื่อประโยชน์แห่งรัฐ"
+  },
+  {
+    "id": "63867cde-ffcc-4f3c-acb0-87e176d439bd",
+    "name": "เจ้าหน้าที่ 3 (เจ้าหน้าที่ DATA)",
+    "email": "staff.3@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนวิจัยและพัฒนามาตรฐานการประเมินราคาทรัพย์สิน"
+  },
+  {
+    "id": "caaa5b23-c173-467f-907c-c4d3d3f6ec90",
+    "name": "เจ้าหน้าที่ 4 (เจ้าหน้าที่ SEC)",
+    "email": "staff.4@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ศูนย์บริหารจัดการราคาประเมินทรัพย์สินแห่งชาติ"
+  },
+  {
+    "id": "798858d4-a5da-4ee7-af52-404e76e17e3b",
+    "name": "เจ้าหน้าที่ 5 (เจ้าหน้าที่ DIGITAL)",
+    "email": "staff.5@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนจัดการฐานข้อมูล"
+  },
+  {
+    "id": "4936a184-e7bc-45c9-a1df-dc9f18cd3cf9",
+    "name": "เจ้าหน้าที่ 6 (เจ้าหน้าที่ INFRA)",
+    "email": "staff.6@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนเลขานุการคณะกรรมการประเมินราคาทรัพย์สินเพื่อประโยชน์แห่งรัฐ"
+  },
+  {
+    "id": "45091215-7009-42a1-819b-ecbe1ee9b4b9",
+    "name": "เจ้าหน้าที่ 7 (เจ้าหน้าที่ DATA)",
+    "email": "staff.7@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนวิจัยและพัฒนามาตรฐานการประเมินราคาทรัพย์สิน"
+  },
+  {
+    "id": "8557a48e-b0dd-4743-a32d-113b839caff0",
+    "name": "เจ้าหน้าที่ 8 (เจ้าหน้าที่ SEC)",
+    "email": "staff.8@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ศูนย์บริหารจัดการราคาประเมินทรัพย์สินแห่งชาติ"
+  },
+  {
+    "id": "e0d047dc-074d-475a-84bc-ec50a33ad6e1",
+    "name": "เจ้าหน้าที่ 9 (เจ้าหน้าที่ DIGITAL)",
+    "email": "staff.9@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ฝ่ายบริหารงานทั่วไป"
+  },
+  {
+    "id": "f62ff974-053c-46de-b72e-062d2cf526e0",
+    "name": "เจ้าหน้าที่ 10 (เจ้าหน้าที่ INFRA)",
+    "email": "staff.10@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนเลขานุการคณะกรรมการประเมินราคาทรัพย์สินเพื่อประโยชน์แห่งรัฐ"
+  },
+  {
+    "id": "312c441e-b332-479e-a1d5-64db18ac922f",
+    "name": "เจ้าหน้าที่ 11 (เจ้าหน้าที่ DATA)",
+    "email": "staff.11@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนวิจัยและพัฒนามาตรฐานการประเมินราคาทรัพย์สิน"
+  },
+  {
+    "id": "ea811976-de42-4fa4-ba84-db32d4c6c19f",
+    "name": "เจ้าหน้าที่ 12 (เจ้าหน้าที่ SEC)",
+    "email": "staff.12@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ศูนย์บริหารจัดการราคาประเมินทรัพย์สินแห่งชาติ"
+  },
+  {
+    "id": "cd0255a3-75bf-4640-b0aa-812146ed9eea",
+    "name": "เจ้าหน้าที่ 13 (เจ้าหน้าที่ DIGITAL)",
+    "email": "staff.13@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนจัดการฐานข้อมูล"
+  },
+  {
+    "id": "46387ab7-4990-4507-b713-4ec345ad1caf",
+    "name": "เจ้าหน้าที่ 14 (เจ้าหน้าที่ INFRA)",
+    "email": "staff.14@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนเลขานุการคณะกรรมการประเมินราคาทรัพย์สินเพื่อประโยชน์แห่งรัฐ"
+  },
+  {
+    "id": "5d1d2f0d-60dd-45c6-aea2-2b65355ae50c",
+    "name": "เจ้าหน้าที่ 15 (เจ้าหน้าที่ DATA)",
+    "email": "staff.15@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนวิจัยและพัฒนามาตรฐานการประเมินราคาทรัพย์สิน"
+  },
+  {
+    "id": "e52d4050-a5f1-40b5-8d5c-e52fe0e51758",
+    "name": "เจ้าหน้าที่ 16 (เจ้าหน้าที่ SEC)",
+    "email": "staff.16@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ศูนย์บริหารจัดการราคาประเมินทรัพย์สินแห่งชาติ"
+  },
+  {
+    "id": "7efb4f92-9ea2-4ae0-b507-95cb9123f30c",
+    "name": "เจ้าหน้าที่ 17 (เจ้าหน้าที่ DIGITAL)",
+    "email": "staff.17@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนจัดการฐานข้อมูล"
+  },
+  {
+    "id": "8dd4557a-09d0-4456-a263-65aa7711fe75",
+    "name": "เจ้าหน้าที่ 18 (เจ้าหน้าที่ INFRA)",
+    "email": "staff.18@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนเลขานุการคณะกรรมการประเมินราคาทรัพย์สินเพื่อประโยชน์แห่งรัฐ"
+  },
+  {
+    "id": "fe9bf994-4706-496c-9e7d-0b86c7c39c9c",
+    "name": "เจ้าหน้าที่ 19 (เจ้าหน้าที่ DATA)",
+    "email": "staff.19@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนวิจัยและพัฒนามาตรฐานการประเมินราคาทรัพย์สิน"
+  },
+  {
+    "id": "601d7d41-ceac-4163-a57a-8b51900593d2",
+    "name": "เจ้าหน้าที่ 20 (เจ้าหน้าที่ SEC)",
+    "email": "staff.20@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ศูนย์บริหารจัดการราคาประเมินทรัพย์สินแห่งชาติ"
+  },
+  {
+    "id": "94d5117e-32e2-4b04-869c-b2bebfcc1241",
+    "name": "เจ้าหน้าที่ 21 (เจ้าหน้าที่ DIGITAL)",
+    "email": "staff.21@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนจัดการฐานข้อมูล"
+  },
+  {
+    "id": "74a7ecda-856a-465a-95e3-33d1445990ff",
+    "name": "เจ้าหน้าที่ 22 (เจ้าหน้าที่ INFRA)",
+    "email": "staff.22@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนเลขานุการคณะกรรมการประเมินราคาทรัพย์สินเพื่อประโยชน์แห่งรัฐ"
+  },
+  {
+    "id": "c7be3c36-a274-4dbb-8afe-991f8b375851",
+    "name": "เจ้าหน้าที่ 23 (เจ้าหน้าที่ DATA)",
+    "email": "staff.23@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนวิจัยและพัฒนามาตรฐานการประเมินราคาทรัพย์สิน"
+  },
+  {
+    "id": "022c548e-35f5-417f-a4ce-40d32b89fcaa",
+    "name": "เจ้าหน้าที่ 24 (เจ้าหน้าที่ SEC)",
+    "email": "staff.24@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ศูนย์บริหารจัดการราคาประเมินทรัพย์สินแห่งชาติ"
+  },
+  {
+    "id": "4d9e1212-3c50-4fc3-9889-ee12f1d5a8d0",
+    "name": "เจ้าหน้าที่ 25 (เจ้าหน้าที่ DIGITAL)",
+    "email": "staff.25@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนจัดการฐานข้อมูล"
+  },
+  {
+    "id": "be7977b0-54e5-401e-bf07-3fed9fb9ae27",
+    "name": "เจ้าหน้าที่ 26 (เจ้าหน้าที่ INFRA)",
+    "email": "staff.26@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนเลขานุการคณะกรรมการประเมินราคาทรัพย์สินเพื่อประโยชน์แห่งรัฐ"
+  },
+  {
+    "id": "e7295629-fc88-4e5f-b3ed-7868a0a3837d",
+    "name": "เจ้าหน้าที่ 27 (เจ้าหน้าที่ DATA)",
+    "email": "staff.27@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนวิจัยและพัฒนามาตรฐานการประเมินราคาทรัพย์สิน"
+  },
+  {
+    "id": "2cca4574-569d-4dc1-a00c-f3eaed067e81",
+    "name": "เจ้าหน้าที่ 28 (เจ้าหน้าที่ SEC)",
+    "email": "staff.28@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ศูนย์บริหารจัดการราคาประเมินทรัพย์สินแห่งชาติ"
+  },
+  {
+    "id": "eab61b8e-9e5f-4210-a139-90a8b6dc737d",
+    "name": "เจ้าหน้าที่ 29 (เจ้าหน้าที่ DIGITAL)",
+    "email": "staff.29@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนจัดการฐานข้อมูล"
+  },
+  {
+    "id": "2315be73-b7f4-4c26-ab0b-c607ddfce72a",
+    "name": "เจ้าหน้าที่ 30 (เจ้าหน้าที่ INFRA)",
+    "email": "staff.30@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนเลขานุการคณะกรรมการประเมินราคาทรัพย์สินเพื่อประโยชน์แห่งรัฐ"
+  },
+  {
+    "id": "6948d4ac-07da-4b0b-9fa6-1a95fddc346d",
+    "name": "เจ้าหน้าที่ 31 (เจ้าหน้าที่ DATA)",
+    "email": "staff.31@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนวิจัยและพัฒนามาตรฐานการประเมินราคาทรัพย์สิน"
+  },
+  {
+    "id": "004b73d0-3cb8-49d0-87ea-d78af5ac8643",
+    "name": "เจ้าหน้าที่ 32 (เจ้าหน้าที่ SEC)",
+    "email": "staff.32@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ศูนย์บริหารจัดการราคาประเมินทรัพย์สินแห่งชาติ"
+  },
+  {
+    "id": "9f9ae343-747e-40b0-896b-e0884ffa4ebd",
+    "name": "เจ้าหน้าที่ 33 (เจ้าหน้าที่ DIGITAL)",
+    "email": "staff.33@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนจัดการฐานข้อมูล"
+  },
+  {
+    "id": "1dfe25cd-3795-4b3d-9919-e34df0d9cb48",
+    "name": "เจ้าหน้าที่ 34 (เจ้าหน้าที่ INFRA)",
+    "email": "staff.34@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนเลขานุการคณะกรรมการประเมินราคาทรัพย์สินเพื่อประโยชน์แห่งรัฐ"
+  },
+  {
+    "id": "548639e6-5a0a-48ee-a80b-1976253cc7fc",
+    "name": "เจ้าหน้าที่ 35 (เจ้าหน้าที่ DATA)",
+    "email": "staff.35@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนวิจัยและพัฒนามาตรฐานการประเมินราคาทรัพย์สิน"
+  },
+  {
+    "id": "23a01fbd-55db-42f8-900e-e72f4d30a5fa",
+    "name": "เจ้าหน้าที่ 36 (เจ้าหน้าที่ SEC)",
+    "email": "staff.36@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ศูนย์บริหารจัดการราคาประเมินทรัพย์สินแห่งชาติ"
+  },
+  {
+    "id": "56811971-54ab-43e9-adc3-7ae68aeda836",
+    "name": "เจ้าหน้าที่ 37 (เจ้าหน้าที่ DIGITAL)",
+    "email": "staff.37@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนจัดการฐานข้อมูล"
+  },
+  {
+    "id": "2260ac14-192c-43bf-b0cf-c27dfce02371",
+    "name": "เจ้าหน้าที่ 38 (เจ้าหน้าที่ INFRA)",
+    "email": "staff.38@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนเลขานุการคณะกรรมการประเมินราคาทรัพย์สินเพื่อประโยชน์แห่งรัฐ"
+  },
+  {
+    "id": "3917e9d9-2c3e-4a9d-aba8-32013db04a4c",
+    "name": "เจ้าหน้าที่ 39 (เจ้าหน้าที่ DATA)",
+    "email": "staff.39@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนวิจัยและพัฒนามาตรฐานการประเมินราคาทรัพย์สิน"
+  },
+  {
+    "id": "8cbafdea-41c6-4eb6-b92d-87bf4d6185ac",
+    "name": "เจ้าหน้าที่ 40 (เจ้าหน้าที่ SEC)",
+    "email": "staff.40@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ศูนย์บริหารจัดการราคาประเมินทรัพย์สินแห่งชาติ"
+  },
+  {
+    "id": "f360a981-445f-441b-8725-741847acf457",
+    "name": "เจ้าหน้าที่ 41 (เจ้าหน้าที่ DIGITAL)",
+    "email": "staff.41@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนจัดการฐานข้อมูล"
+  },
+  {
+    "id": "322abaa9-9c6b-4020-9552-009d817e83d2",
+    "name": "เจ้าหน้าที่ 42 (เจ้าหน้าที่ INFRA)",
+    "email": "staff.42@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนเลขานุการคณะกรรมการประเมินราคาทรัพย์สินเพื่อประโยชน์แห่งรัฐ"
+  },
+  {
+    "id": "ab776c43-fd09-40ed-8754-0156145ea808",
+    "name": "เจ้าหน้าที่ 43 (เจ้าหน้าที่ DATA)",
+    "email": "staff.43@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนวิจัยและพัฒนามาตรฐานการประเมินราคาทรัพย์สิน"
+  },
+  {
+    "id": "86848319-8d2e-4bf4-a321-141b3b2e564d",
+    "name": "เจ้าหน้าที่ 44 (เจ้าหน้าที่ SEC)",
+    "email": "staff.44@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ศูนย์บริหารจัดการราคาประเมินทรัพย์สินแห่งชาติ"
+  },
+  {
+    "id": "8b33a12d-da16-4b11-962a-0e8f185f1a41",
+    "name": "เจ้าหน้าที่ 45 (เจ้าหน้าที่ DIGITAL)",
+    "email": "staff.45@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนจัดการฐานข้อมูล"
+  },
+  {
+    "id": "6df6df1f-b2fa-440d-8076-1c192e739f8a",
+    "name": "เจ้าหน้าที่ 46 (เจ้าหน้าที่ INFRA)",
+    "email": "staff.46@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนเลขานุการคณะกรรมการประเมินราคาทรัพย์สินเพื่อประโยชน์แห่งรัฐ"
+  },
+  {
+    "id": "aa8ed572-d3f3-4504-a630-3b3cb7e20e68",
+    "name": "เจ้าหน้าที่ 47 (เจ้าหน้าที่ DATA)",
+    "email": "staff.47@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนวิจัยและพัฒนามาตรฐานการประเมินราคาทรัพย์สิน"
+  },
+  {
+    "id": "4a38feaf-dafe-40ec-affc-bd0a92c63e33",
+    "name": "เจ้าหน้าที่ 48 (เจ้าหน้าที่ SEC)",
+    "email": "staff.48@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ศูนย์บริหารจัดการราคาประเมินทรัพย์สินแห่งชาติ"
+  },
+  {
+    "id": "5ee5213d-eba5-460d-86ab-968028875c61",
+    "name": "เจ้าหน้าที่ 49 (เจ้าหน้าที่ DIGITAL)",
+    "email": "staff.49@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนจัดการฐานข้อมูล"
+  },
+  {
+    "id": "6bad444f-ba1d-4f13-9871-d2b16f5e34df",
+    "name": "เจ้าหน้าที่ 50 (เจ้าหน้าที่ INFRA)",
+    "email": "staff.50@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนเลขานุการคณะกรรมการประเมินราคาทรัพย์สินเพื่อประโยชน์แห่งรัฐ"
+  },
+  {
+    "id": "b80b3070-befa-4bcc-beea-12082d60d6c8",
+    "name": "เจ้าหน้าที่ 51 (เจ้าหน้าที่ DATA)",
+    "email": "staff.51@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนวิจัยและพัฒนามาตรฐานการประเมินราคาทรัพย์สิน"
+  },
+  {
+    "id": "8626c0bf-6de2-4a1d-8361-e9c5ee5612aa",
+    "name": "เจ้าหน้าที่ 52 (เจ้าหน้าที่ SEC)",
+    "email": "staff.52@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ศูนย์บริหารจัดการราคาประเมินทรัพย์สินแห่งชาติ"
+  },
+  {
+    "id": "da84e1ea-7510-409f-ac39-e16ea66a2b43",
+    "name": "เจ้าหน้าที่ 53 (เจ้าหน้าที่ DIGITAL)",
+    "email": "staff.53@organization.go.th",
+    "roleTitle": "เจ้าหน้าที่ปฏิบัติงาน",
+    "sectionName": "ส่วนจัดการฐานข้อมูล"
+  }
+]
