@@ -64,58 +64,15 @@ export default function UserRoleManagement() {
   const [userRoleId, setUserRoleId] = useState('');
   const [userSecId, setUserSecId] = useState('');
 
-  const fetchData = async () => {
-    try {
-      const [resUsers, resSections, resRoles] = await Promise.all([
-        fetch(`/api/users?_t=${Date.now()}`),
-        fetch(`/api/sections?_t=${Date.now()}`),
-        fetch(`/api/roles?_t=${Date.now()}`),
-      ]);
-      const dataUsers: any = await resUsers.json();
-      const dataSections: any = await resSections.json();
-      const dataRoles: any = await resRoles.json();
-
-      if (dataUsers.success && Array.isArray(dataUsers.data) && dataUsers.data.length > 0) {
-        setUsers(dataUsers.data);
-      } else {
-        setUsers(LocalStorageManager.getUsers());
-      }
-      if (dataSections.success && Array.isArray(dataSections.data) && dataSections.data.length > 0) {
-        setSections(dataSections.data);
-      } else {
-        setSections(LocalStorageManager.getSections());
-      }
-
-      if (dataRoles.success && Array.isArray(dataRoles.data) && dataRoles.data.length > 0) {
-        setRoles(dataRoles.data);
-        if (!selectedRoleId) {
-          const firstRole = dataRoles.data[0];
-          setSelectedRoleId(firstRole.id);
-          initMatrixForRole(firstRole);
-        }
-      } else {
-        setRoles(SEED_ROLES);
-        if (!selectedRoleId && SEED_ROLES.length > 0) {
-          setSelectedRoleId(SEED_ROLES[0].id);
-          initMatrixForRole(SEED_ROLES[0]);
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to fetch user & role management data, using fallback data', e);
-      setUsers(LocalStorageManager.getUsers());
-      setSections(LocalStorageManager.getSections());
-      setRoles(SEED_ROLES);
-      if (!selectedRoleId && SEED_ROLES.length > 0) {
-        setSelectedRoleId(SEED_ROLES[0].id);
-        initMatrixForRole(SEED_ROLES[0]);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchData();
+    setUsers(LocalStorageManager.getUsers());
+    setSections(LocalStorageManager.getSections());
+    setRoles(SEED_ROLES);
+    if (!selectedRoleId && SEED_ROLES.length > 0) {
+      setSelectedRoleId(SEED_ROLES[0].id);
+      initMatrixForRole(SEED_ROLES[0]);
+    }
+    setLoading(false);
   }, []);
 
   // Initialize Permission Matrix for Selected Role
