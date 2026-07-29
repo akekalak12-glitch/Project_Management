@@ -7,7 +7,7 @@ let prismaInstance: PrismaClient | null = null;
 export function getPrisma(): PrismaClient {
   try {
     const ctx = getRequestContext();
-    if (ctx?.env?.DB) {
+    if (ctx && ctx.env && ctx.env.DB) {
       if (!prismaInstance) {
         const adapter = new PrismaD1(ctx.env.DB);
         prismaInstance = new PrismaClient({ adapter } as any);
@@ -15,15 +15,15 @@ export function getPrisma(): PrismaClient {
       return prismaInstance;
     }
   } catch (e) {
-    // Fallback when outside request context or local dev
+    // Cloudflare Workers request context not active
   }
 
-  // Local SQLite fallback
+  // Fallback for local development or non-Edge contexts
   const globalWithPrisma = globalThis as typeof globalThis & {
     prismaLocal?: PrismaClient;
   };
   if (!globalWithPrisma.prismaLocal) {
-    globalWithPrisma.prismaLocal = new PrismaClient({ log: ['error', 'warn'] });
+    globalWithPrisma.prismaLocal = new PrismaClient();
   }
   return globalWithPrisma.prismaLocal;
 }
