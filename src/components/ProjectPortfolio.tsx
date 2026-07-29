@@ -92,10 +92,11 @@ export default function ProjectPortfolio() {
     setPrjName('');
     setPrjCode(`PRJ-${Date.now().toString().slice(-4)}`);
     setPrjDesc('');
-    setPrjSecId(sections[0]?.id || '');
-    setPrjOwnerId(currentUser?.id || projectOwners[0]?.id || '');
+    setPrjSecId(sections[0]?.id || 'sec-it-uuid');
+    setPrjOwnerId(currentUser?.id || projectOwners[0]?.id || '8b1f19e0-959c-4c6f-9f4e-fcc4ee8466d4');
     setPrjStatus('PLANNING');
-    setShowPrjModal(true);
+    setShowPrjModal(false);
+    setTimeout(() => setShowPrjModal(true), 10);
   };
 
   const handleOpenEditProject = (p: ProjectItem) => {
@@ -134,9 +135,12 @@ export default function ProjectPortfolio() {
       if (data.success) {
         setShowPrjModal(false);
         fetchProjectsData();
+      } else {
+        alert(`ไม่สามารถบันทึกโครงการได้: ${data.error || 'โปรดตรวจสอบความถูกต้องของข้อมูล'}`);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to save project', e);
+      alert('เกิดข้อผิดพลาดในการบันทึกโครงการ');
     }
   };
 
