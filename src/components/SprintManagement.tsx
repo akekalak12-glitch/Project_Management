@@ -644,7 +644,11 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
                           const slotBacklogs = sprintBacklogs.filter((b) => {
                             if (!b.startDate) return idx === 0;
                             const bStartStr = new Date(b.startDate).toISOString().slice(0, 10);
-                            return bStartStr === slot.startDate;
+                            if (bStartStr === slot.startDate) return true;
+                            if (bStartStr >= slot.startDate && bStartStr <= slot.endDate) return true;
+                            if (idx === 0 && bStartStr < slot.startDate) return true;
+                            if (idx === sprintSlots.length - 1 && bStartStr > slot.endDate) return true;
+                            return false;
                           });
 
                           return (
