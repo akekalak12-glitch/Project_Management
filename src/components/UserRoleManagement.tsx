@@ -19,6 +19,8 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { UserProfile, Section } from '@/lib/auth-context';
+import { SEED_ROLES } from '@/lib/data-store';
+import { LocalStorageManager } from '@/lib/storage-manager';
 
 interface RoleItem {
   id: string;
@@ -73,19 +75,40 @@ export default function UserRoleManagement() {
       const dataSections: any = await resSections.json();
       const dataRoles: any = await resRoles.json();
 
-      if (dataUsers.success) setUsers(dataUsers.data);
-      if (dataSections.success) setSections(dataSections.data);
+      if (dataUsers.success && Array.isArray(dataUsers.data) && dataUsers.data.length > 0) {
+        setUsers(dataUsers.data);
+      } else {
+        setUsers(LocalStorageManager.getUsers());
+      }
+      if (dataSections.success && Array.isArray(dataSections.data) && dataSections.data.length > 0) {
+        setSections(dataSections.data);
+      } else {
+        setSections(LocalStorageManager.getSections());
+      }
 
-      if (dataRoles.success) {
+      if (dataRoles.success && Array.isArray(dataRoles.data) && dataRoles.data.length > 0) {
         setRoles(dataRoles.data);
-        if (dataRoles.data.length > 0 && !selectedRoleId) {
+        if (!selectedRoleId) {
           const firstRole = dataRoles.data[0];
           setSelectedRoleId(firstRole.id);
           initMatrixForRole(firstRole);
         }
+      } else {
+        setRoles(SEED_ROLES);
+        if (!selectedRoleId && SEED_ROLES.length > 0) {
+          setSelectedRoleId(SEED_ROLES[0].id);
+          initMatrixForRole(SEED_ROLES[0]);
+        }
       }
     } catch (e) {
-      console.error('Failed to fetch user & role management data', e);
+      console.warn('Failed to fetch user & role management data, using fallback data', e);
+      setUsers(LocalStorageManager.getUsers());
+      setSections(LocalStorageManager.getSections());
+      setRoles(SEED_ROLES);
+      if (!selectedRoleId && SEED_ROLES.length > 0) {
+        setSelectedRoleId(SEED_ROLES[0].id);
+        initMatrixForRole(SEED_ROLES[0]);
+      }
     } finally {
       setLoading(false);
     }

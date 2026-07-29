@@ -29,15 +29,17 @@ interface ProjectSummary {
   section: { name: string; code: string };
 }
 
-import { SEED_PROJECTS } from '@/lib/data-store';
+import { LocalStorageManager } from '@/lib/storage-manager';
 
 export default function ExecutiveDashboard() {
   const { currentUser, isExecutive, isAdvisor } = useAuth();
   const [okrs, setOkrs] = useState<OKRItem[]>([]);
-  const [projects, setProjects] = useState<ProjectSummary[]>(SEED_PROJECTS as any);
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    setProjects(LocalStorageManager.getProjects());
+
     async function loadData() {
       try {
         const [resOkrs, resPrj] = await Promise.all([
