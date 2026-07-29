@@ -39,7 +39,7 @@ export default function PersonalTodoList() {
     if (!currentUser) return;
     try {
       const res = await fetch(`/api/tasks?assigneeId=${currentUser.id}`);
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success) {
         setTasks(data.data);
       }

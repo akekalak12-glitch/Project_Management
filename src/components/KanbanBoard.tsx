@@ -117,11 +117,11 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
         fetch(`/api/backlog?_t=${Date.now()}`),
         fetch(`/api/users?_t=${Date.now()}`),
       ]);
-      const dataTasks = await resTasks.json();
-      const dataSprints = await resSprints.json();
-      const dataProjects = await resProjects.json();
-      const dataBacklogs = await resBacklogs.json();
-      const dataUsers = await resUsers.json();
+      const dataTasks: any = await resTasks.json();
+      const dataSprints: any = await resSprints.json();
+      const dataProjects: any = await resProjects.json();
+      const dataBacklogs: any = await resBacklogs.json();
+      const dataUsers: any = await resUsers.json();
 
       if (dataProjects.success) setProjects(dataProjects.data);
 
@@ -174,7 +174,7 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newColumnStatus }),
       });
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success) {
         fetchBoardData();
       }
@@ -299,7 +299,7 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
           assigneeIds: selectedAssigneeIds,
         }),
       });
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success) {
         setShowTaskModal(false);
         fetchBoardData();
@@ -317,7 +317,7 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
     if (!confirm(`คุณต้องการลบการ์ดงาน "${title}" ใช่หรือไม่?`)) return;
     try {
       const res = await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success) {
         fetchBoardData();
       }

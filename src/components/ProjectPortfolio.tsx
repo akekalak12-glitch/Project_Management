@@ -66,9 +66,9 @@ export default function ProjectPortfolio() {
         fetch('/api/sections'),
         fetch('/api/users'),
       ]);
-      const dataPrj = await resPrj.json();
-      const dataSec = await resSec.json();
-      const dataUsers = await resUsers.json();
+      const dataPrj: any = await resPrj.json();
+      const dataSec: any = await resSec.json();
+      const dataUsers: any = await resUsers.json();
 
       if (dataPrj.success) setProjects(dataPrj.data);
       if (dataSec.success) setSections(dataSec.data);
@@ -130,7 +130,7 @@ export default function ProjectPortfolio() {
         }),
       });
 
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success) {
         setShowPrjModal(false);
         fetchProjectsData();
@@ -145,7 +145,7 @@ export default function ProjectPortfolio() {
 
     try {
       const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success) fetchProjectsData();
     } catch (e) {
       console.error('Failed to delete project', e);

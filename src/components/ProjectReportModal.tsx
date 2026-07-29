@@ -78,7 +78,7 @@ export default function ProjectReportModal({
       await Promise.all(
         sprintsData.map(async (s: any) => {
           const res = await fetch(`/api/backlog?sprintId=${s.id}`);
-          const d = await res.json();
+          const d: any = await res.json();
           if (d.success) allBacklogs.push(...d.data);
         })
       );

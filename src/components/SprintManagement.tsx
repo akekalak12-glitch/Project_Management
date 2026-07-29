@@ -107,9 +107,9 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
         fetch(`/api/projects${uParam}`),
         fetch('/api/backlog'),
       ]);
-      const dataSprints = await resSprints.json();
-      const dataProjects = await resProjects.json();
-      const dataBacklogs = await resBacklogs.json();
+      const dataSprints: any = await resSprints.json();
+      const dataProjects: any = await resProjects.json();
+      const dataBacklogs: any = await resBacklogs.json();
 
       if (dataSprints.success) {
         setSprints(dataSprints.data);
@@ -258,7 +258,7 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
           status: sprintStatus,
         }),
       });
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success) {
         setShowSprintModal(false);
         fetchData();
@@ -275,7 +275,7 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
     if (!confirm(`คุณต้องการลบ Sprint "${name}" และ Backlog ทั้งหมดใน Sprint นี้ใช่หรือไม่?`)) return;
     try {
       const res = await fetch(`/api/sprints/${id}`, { method: 'DELETE' });
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success) fetchData();
     } catch (e) {
       console.error('Failed to delete sprint', e);
@@ -356,7 +356,7 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
           status: editingBacklogId ? 'FLEXIBLE_REVISED' : 'PLANNED',
         }),
       });
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success) {
         setShowBacklogModal(false);
         fetchData();
@@ -370,7 +370,7 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
     if (!confirm(`คุณต้องการลบ Backlog Item "${title}" ใช่หรือไม่?`)) return;
     try {
       const res = await fetch(`/api/backlog/${id}`, { method: 'DELETE' });
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success) fetchData();
     } catch (e) {
       console.error('Failed to delete backlog item', e);

@@ -43,8 +43,8 @@ export default function ExecutiveDashboard() {
           fetch('/api/okrs'),
           fetch(`/api/projects${uParam}`),
         ]);
-        const dataOkrs = await resOkrs.json();
-        const dataPrj = await resPrj.json();
+        const dataOkrs: any = await resOkrs.json();
+        const dataPrj: any = await resPrj.json();
 
         if (dataOkrs.success) setOkrs(dataOkrs.data);
         if (dataPrj.success) setProjects(dataPrj.data);

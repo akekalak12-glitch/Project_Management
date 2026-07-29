@@ -69,9 +69,9 @@ export default function UserRoleManagement() {
         fetch(`/api/sections?_t=${Date.now()}`),
         fetch(`/api/roles?_t=${Date.now()}`),
       ]);
-      const dataUsers = await resUsers.json();
-      const dataSections = await resSections.json();
-      const dataRoles = await resRoles.json();
+      const dataUsers: any = await resUsers.json();
+      const dataSections: any = await resSections.json();
+      const dataRoles: any = await resRoles.json();
 
       if (dataUsers.success) setUsers(dataUsers.data);
       if (dataSections.success) setSections(dataSections.data);
@@ -151,7 +151,7 @@ export default function UserRoleManagement() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ menuPermissions: JSON.stringify(permissionMatrix) }),
       });
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success) {
         setSyncMsg('✅ บันทึกการกำหนดสิทธิ์เมนูสำหรับบทบาทสำเร็จเรียบร้อยแล้ว!');
         setTimeout(() => setSyncMsg(null), 4000);
@@ -210,7 +210,7 @@ export default function UserRoleManagement() {
           sectionId: userSecId || null,
         }),
       });
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success) {
         setShowUserModal(false);
         fetchData();
@@ -227,7 +227,7 @@ export default function UserRoleManagement() {
     if (!confirm(`คุณต้องการลบเจ้าหน้าที่ "${name}" ใช่หรือไม่?`)) return;
     try {
       const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success) fetchData();
     } catch (e) {
       console.error('Failed to delete user', e);

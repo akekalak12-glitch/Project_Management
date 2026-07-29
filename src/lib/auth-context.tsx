@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchUsers = async () => {
     try {
       const res = await fetch('/api/users');
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success) {
         setUsersList(data.data);
       }
@@ -77,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (savedLoggedIn === 'true' && savedUserId) {
         const res = await fetch(`/api/auth/me?userId=${savedUserId}`);
-        const data = await res.json();
+        const data: any = await res.json();
         if (data.success && data.user) {
           setCurrentUser(data.user);
           setIsLoggedIn(true);
@@ -120,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const res = await fetch(`/api/auth/me?userId=${matchedUser.id}`);
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success && data.user) {
         setCurrentUser(data.user);
         setIsLoggedIn(true);
@@ -153,7 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const res = await fetch(`/api/auth/me?userId=${userId}`);
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success && data.user) {
         setCurrentUser(data.user);
         setIsLoggedIn(true);

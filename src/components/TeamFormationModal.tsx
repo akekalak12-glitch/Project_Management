@@ -35,8 +35,8 @@ export default function TeamFormationModal({
           fetch('/api/users'),
           fetch(`/api/projects/${projectId}/members`),
         ]);
-        const dataUsers = await resUsers.json();
-        const dataMembers = await resMembers.json();
+        const dataUsers: any = await resUsers.json();
+        const dataMembers: any = await resMembers.json();
 
         if (dataUsers.success) setAllUsers(dataUsers.data);
         if (dataMembers.success) {
@@ -67,7 +67,7 @@ export default function TeamFormationModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userIds: selectedUserIds, projectRole: 'MEMBER' }),
       });
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success) {
         onSaved();
         onClose();
