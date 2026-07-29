@@ -1,7 +1,5 @@
 export const runtime = 'edge';
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-
 import { SEED_USERS } from '@/lib/data-store';
 
 export async function GET(request: Request) {
@@ -16,6 +14,7 @@ export async function GET(request: Request) {
 
     let users: any[] = [];
     try {
+      const { prisma } = await import('@/lib/prisma');
       users = await prisma.user.findMany({
         where,
         include: {
