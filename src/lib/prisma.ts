@@ -2,25 +2,15 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaD1 } from '@prisma/adapter-d1';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 
-let globalPrisma: PrismaClient | null = null;
-
 export function getPrisma(): PrismaClient {
-  if (globalPrisma) return globalPrisma;
-
-  let dbBinding: any = null;
   try {
     const ctx = getRequestContext();
     if (ctx && ctx.env && ctx.env.DB) {
-      dbBinding = ctx.env.DB;
+      const adapter = new PrismaD1(ctx.env.DB);
+      return new PrismaClient({ adapter } as any);
     }
   } catch (e) {
-    // Request context unavailable or in Node.js environment
-  }
-
-  if (dbBinding) {
-    const adapter = new PrismaD1(dbBinding);
-    globalPrisma = new PrismaClient({ adapter } as any);
-    return globalPrisma;
+    // Cloudflare Workers request context not active
   }
 
   // Fallback for local development using SQLite
