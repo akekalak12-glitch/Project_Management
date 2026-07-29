@@ -1,0 +1,10 @@
+name = "project-management"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+pages_build_output_dir = ".vercel/output/static"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pm-database"
+database_id = "c74a349e-ea4f-40b9-8be7-8dcb52b75eb5"

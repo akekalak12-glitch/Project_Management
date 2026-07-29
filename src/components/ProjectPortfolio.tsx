@@ -1,0 +1,498 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/lib/auth-context';
+import TeamFormationModal from './TeamFormationModal';
+import ProjectReportModal from './ProjectReportModal';
+import {
+  FolderKanban,
+  Search,
+  Plus,
+  Users,
+  Building2,
+  Calendar,
+  Layers,
+  ChevronRight,
+  Edit2,
+  Trash2,
+  X,
+  FileText,
+} from 'lucide-react';
+
+interface ProjectItem {
+  id: string;
+  name: string;
+  code: string;
+  description?: string;
+  status: string;
+  sectionId: string;
+  ownerId: string;
+  section: { id: string; name: string; code: string };
+  owner: { id: string; name: string; avatarUrl?: string };
+  members: Array<{ id: string; userId: string; user: { name: string; avatarUrl?: string } }>;
+  _count?: { tasks: number };
+}
+
+export default function ProjectPortfolio() {
+  const { currentUser, canCreateProject, canManageTeam, isExecutive, isAdvisor } = useAuth();
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
+  const [projectOwners, setProjectOwners] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
+  const [selectedSection, setSelectedSection] = useState('ALL');
+  const [loading, setLoading] = useState(true);
+
+  // Team Formation Modal State
+  const [activeProjectForTeam, setActiveProjectForTeam] = useState<{ id: string; name: string } | null>(null);
+
+  // Report/PDF Modal State
+  const [activeProjectForReport, setActiveProjectForReport] = useState<{ id: string; name: string } | null>(null);
+
+  // Project CRUD Modal State
+  const [showPrjModal, setShowPrjModal] = useState(false);
+  const [editingPrjId, setEditingPrjId] = useState<string | null>(null);
+  const [prjName, setPrjName] = useState('');
+  const [prjCode, setPrjCode] = useState('');
+  const [prjDesc, setPrjDesc] = useState('');
+  const [prjSecId, setPrjSecId] = useState('');
+  const [prjOwnerId, setPrjOwnerId] = useState('');
+  const [prjStatus, setPrjStatus] = useState('PLANNING');
+
+  const fetchProjectsData = async () => {
+    try {
+      const uParam = currentUser?.id ? `?userId=${currentUser.id}` : '';
+      const [resPrj, resSec, resUsers] = await Promise.all([
+        fetch(`/api/projects${uParam}`),
+        fetch('/api/sections'),
+        fetch('/api/users'),
+      ]);
+      const dataPrj = await resPrj.json();
+      const dataSec = await resSec.json();
+      const dataUsers = await resUsers.json();
+
+      if (dataPrj.success) setProjects(dataPrj.data);
+      if (dataSec.success) setSections(dataSec.data);
+      if (dataUsers.success) {
+        // Filter users who can be project owners (or all users)
+        setProjectOwners(dataUsers.data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch projects data', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjectsData();
+  }, [currentUser?.id]);
+
+  const handleOpenAddProject = () => {
+    setEditingPrjId(null);
+    setPrjName('');
+    setPrjCode(`PRJ-${Date.now().toString().slice(-4)}`);
+    setPrjDesc('');
+    setPrjSecId(sections[0]?.id || '');
+    setPrjOwnerId(currentUser?.id || projectOwners[0]?.id || '');
+    setPrjStatus('PLANNING');
+    setShowPrjModal(true);
+  };
+
+  const handleOpenEditProject = (p: ProjectItem) => {
+    setEditingPrjId(p.id);
+    setPrjName(p.name);
+    setPrjCode(p.code);
+    setPrjDesc(p.description || '');
+    setPrjSecId(p.sectionId);
+    setPrjOwnerId(p.ownerId);
+    setPrjStatus(p.status);
+    setShowPrjModal(true);
+  };
+
+  const handleSaveProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!prjName || !prjCode || !prjSecId || !prjOwnerId) return;
+
+    try {
+      const url = editingPrjId ? `/api/projects/${editingPrjId}` : '/api/projects';
+      const method = editingPrjId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: prjName,
+          code: prjCode,
+          description: prjDesc,
+          sectionId: prjSecId,
+          ownerId: prjOwnerId,
+          status: prjStatus,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setShowPrjModal(false);
+        fetchProjectsData();
+      }
+    } catch (e) {
+      console.error('Failed to save project', e);
+    }
+  };
+
+  const handleDeleteProject = async (id: string, name: string) => {
+    if (!confirm(`คุณต้องการลบโครงการ "${name}" ใช่หรือไม่?`)) return;
+
+    try {
+      const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) fetchProjectsData();
+    } catch (e) {
+      console.error('Failed to delete project', e);
+    }
+  };
+
+  const isFullAccessUser = isExecutive || isAdvisor;
+
+  const accessibleProjects = isFullAccessUser
+    ? projects
+    : projects.filter((p) =>
+        p.ownerId === currentUser?.id ||
+        p.owner?.id === currentUser?.id ||
+        p.members?.some((m: any) => m.userId === currentUser?.id || m.user?.id === currentUser?.id)
+      );
+
+  const filteredProjects = accessibleProjects.filter((p) => {
+    const matchesSearch =
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.code.toLowerCase().includes(search.toLowerCase()) ||
+      p.section.name.toLowerCase().includes(search.toLowerCase());
+    const matchesSection = selectedSection === 'ALL' || p.section.code === selectedSection;
+    return matchesSearch && matchesSection;
+  });
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Top Action Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-sm">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">
+              Project Portfolio Management
+            </span>
+            <span className="text-xs text-slate-400">({projects.length} โครงการในระบบ)</span>
+          </div>
+          <h1 className="text-2xl font-bold text-white mt-2">รายการบริหารจัดการโครงการ (Portfolio)</h1>
+          <p className="text-slate-400 text-xs mt-1">
+            รองรับการ **เพิ่ม แก้ไข ลบ โครงการ** และตั้งทีมงาน (Team Formation) รายโครงการ
+          </p>
+        </div>
+
+        {canCreateProject && (
+          <button
+            onClick={handleOpenAddProject}
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-blue-600/20 transition-all self-start md:self-auto"
+          >
+            <Plus className="w-4 h-4" /> สร้างโครงการใหม่ (Add Project)
+          </button>
+        )}
+      </div>
+
+      {/* Filter and Search Bar */}
+      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row gap-3 items-center justify-between shadow-sm">
+        <div className="relative w-full md:w-80">
+          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+          <input
+            type="text"
+            placeholder="ค้นหาชื่อโครงการ, รหัสรหัส หรือส่วนงาน..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+          {['ALL', 'DIGITAL', 'INFRA', 'DATA', 'SEC'].map((sec) => (
+            <button
+              key={sec}
+              onClick={() => setSelectedSection(sec)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                selectedSection === sec
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+              }`}
+            >
+              {sec === 'ALL' && 'ทุกส่วนงาน (All)'}
+              {sec === 'DIGITAL' && 'นวัตกรรมดิจิทัล'}
+              {sec === 'INFRA' && 'โครงสร้างพื้นฐาน'}
+              {sec === 'DATA' && 'การจัดการข้อมูล'}
+              {sec === 'SEC' && 'ความมั่นคงปลอดภัย'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Projects Grid */}
+      {loading ? (
+        <div className="py-12 text-center text-slate-400 text-xs">กำลังโหลดรายการโครงการ...</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredProjects.map((p) => (
+            <div
+              key={p.id}
+              className="bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-all flex flex-col justify-between shadow-sm space-y-4"
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono font-bold bg-slate-800 text-blue-400 px-2.5 py-1 rounded-md border border-slate-700">
+                    {p.code}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                        p.status === 'IN_PROGRESS'
+                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                          : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                      }`}
+                    >
+                      {p.status === 'IN_PROGRESS' ? 'In Progress' : 'Planning'}
+                    </span>
+                    {canCreateProject && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleOpenEditProject(p)}
+                          className="p-1 text-slate-400 hover:text-amber-400 transition-all"
+                          title="แก้ไขโครงการ"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProject(p.id, p.name)}
+                          className="p-1 text-slate-400 hover:text-rose-400 transition-all"
+                          title="ลบโครงการ"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setActiveProjectForReport({ id: p.id, name: p.name })}
+                      className="p-1 text-slate-400 hover:text-emerald-400 transition-all"
+                      title="ดูรายงาน / ส่งออก PDF"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <h3 className="text-sm font-bold text-white line-clamp-2">{p.name}</h3>
+                <p className="text-xs text-slate-400 line-clamp-2">{p.description}</p>
+              </div>
+
+              {/* Owner & Section */}
+              <div className="pt-3 border-t border-slate-800 space-y-2 text-xs">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                    {p.section.name}
+                  </span>
+                  <span className="text-slate-300 font-medium">ผอ.ส่วน: {p.owner.name}</span>
+                </div>
+
+                {/* Team Members Avatar Stack & Action */}
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center -space-x-2 overflow-hidden">
+                    {p.members.slice(0, 4).map((m, idx) => (
+                      <img
+                        key={idx}
+                        src={m.user.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}
+                        alt={m.user.name}
+                        title={m.user.name}
+                        className="inline-block h-7 w-7 rounded-full ring-2 ring-slate-900 bg-slate-800"
+                      />
+                    ))}
+                    {p.members.length > 4 && (
+                      <span className="flex items-center justify-center h-7 w-7 rounded-full ring-2 ring-slate-900 bg-slate-800 text-[10px] font-bold text-slate-300">
+                        +{p.members.length - 4}
+                      </span>
+                    )}
+                  </div>
+
+                  {canManageTeam && (
+                    <button
+                      onClick={() => setActiveProjectForTeam({ id: p.id, name: p.name })}
+                      className="flex items-center gap-1 text-[11px] font-semibold text-blue-400 hover:text-blue-300 hover:underline cursor-pointer"
+                    >
+                      <Users className="w-3.5 h-3.5" /> ตั้งทีมงาน ({p.members.length})
+                    </button>
+                  )}
+                </div>
+
+                {/* Dynamic Backlog Success Progress % */}
+                <div className="pt-2.5 border-t border-slate-800/80 space-y-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-slate-400 font-medium flex items-center gap-1">
+                      🎯 ความก้าวหน้า Backlog (Success Rate):
+                    </span>
+                    <span className="font-extrabold text-emerald-400 font-mono">
+                      {(p as any).progress || 0}% ({ (p as any).successBacklogs || 0 }/{(p as any).totalBacklogs || 0} Success)
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                    <div
+                      className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min((p as any).progress || 0, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Team Formation Modal */}
+      {activeProjectForTeam && (
+        <TeamFormationModal
+          projectId={activeProjectForTeam.id}
+          projectName={activeProjectForTeam.name}
+          isOpen={!!activeProjectForTeam}
+          onClose={() => setActiveProjectForTeam(null)}
+          onSaved={fetchProjectsData}
+        />
+      )}
+
+      {/* Project Report / PDF Export Modal */}
+      {activeProjectForReport && (
+        <ProjectReportModal
+          projectId={activeProjectForReport.id}
+          projectName={activeProjectForReport.name}
+          isOpen={!!activeProjectForReport}
+          onClose={() => setActiveProjectForReport(null)}
+        />
+      )}
+
+      {/* Project Modal (Add/Edit) */}
+      {showPrjModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <form
+            onSubmit={handleSaveProject}
+            className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 space-y-4 shadow-2xl"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <h3 className="text-base font-bold text-white">
+                {editingPrjId ? 'แก้ไขโครงการ (Edit Project)' : 'สร้างโครงการใหม่ (New Project)'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowPrjModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-slate-300 block mb-1">ชื่อโครงการ</label>
+              <input
+                type="text"
+                required
+                placeholder="ระบุชื่อโครงการ..."
+                value={prjName}
+                onChange={(e) => setPrjName(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-slate-300 block mb-1">รหัสโครงการ (Project Code)</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="เช่น PRJ-DIG-01"
+                  value={prjCode}
+                  onChange={(e) => setPrjCode(e.target.value.toUpperCase())}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-slate-300 block mb-1">สถานะโครงการ</label>
+                <select
+                  value={prjStatus}
+                  onChange={(e) => setPrjStatus(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="PLANNING">PLANNING</option>
+                  <option value="IN_PROGRESS">IN_PROGRESS</option>
+                  <option value="ON_HOLD">ON_HOLD</option>
+                  <option value="COMPLETED">COMPLETED</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-slate-300 block mb-1">ส่วนงานที่รับผิดชอบ</label>
+                <select
+                  value={prjSecId}
+                  onChange={(e) => setPrjSecId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {sections.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-slate-300 block mb-1">ผอ.ส่วน / Project Owner</label>
+                <select
+                  value={prjOwnerId}
+                  onChange={(e) => setPrjOwnerId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {projectOwners.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name} ({u.role.title})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-slate-300 block mb-1">คำอธิบายโครงการ</label>
+              <textarea
+                rows={3}
+                placeholder="รายละเอียดขอบเขตงานและเป้าหมายโครงการ..."
+                value={prjDesc}
+                onChange={(e) => setPrjDesc(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowPrjModal(false)}
+                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 transition-all"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-500 shadow-md shadow-blue-600/20 transition-all"
+              >
+                บันทึกโครงการ
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,175 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+model Role {
+  id              String   @id @default(uuid())
+  key             String   @unique
+  title           String
+  permissionLevel Int
+  menuPermissions String?
+  users           User[]
+}
+
+model Section {
+  id          String    @id @default(uuid())
+  name        String
+  code        String    @unique
+  description String?
+  users       User[]
+  projects    Project[]
+  okrs        OKR[]
+}
+
+model User {
+  id             String              @id @default(uuid())
+  name           String
+  email          String              @unique
+  password       String?             @default("123456")
+  avatarUrl      String?
+  roleId         String
+  role           Role                @relation(fields: [roleId], references: [id])
+  sectionId      String?
+  section        Section?            @relation(fields: [sectionId], references: [id])
+  ownedProjects  Project[]           @relation("ProjectOwner")
+  projectMembers ProjectMember[]
+  assignedTasks  Task[]              @relation("TaskAssignee")
+  taskAssignees  TaskAssignee[]
+  reportedTasks  Task[]              @relation("TaskReporter")
+  backlogItems   SprintBacklogItem[] @relation("BacklogAssignee")
+  comments       TaskComment[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+}
+
+model Project {
+  id          String          @id @default(uuid())
+  name        String
+  code        String          @unique
+  description String?
+  sectionId   String
+  section     Section         @relation(fields: [sectionId], references: [id])
+  ownerId     String
+  owner       User            @relation("ProjectOwner", fields: [ownerId], references: [id])
+  status      String          @default("PLANNING")
+  startDate   DateTime?
+  endDate     DateTime?
+  members     ProjectMember[]
+  okrs        OKR[]
+  sprints     Sprint[]
+  tasks       Task[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model ProjectMember {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectRole String   @default("MEMBER")
+
+  @@unique([projectId, userId])
+}
+
+model OKR {
+  id           String   @id @default(uuid())
+  objective    String
+  keyResult    String
+  targetValue  Float
+  currentValue Float    @default(0)
+  unit         String
+  projectId    String?
+  project      Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  sectionId    String?
+  section      Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  progress     Float    @default(0)
+  status       String   @default("ON_TRACK")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Sprint {
+  id           String              @id @default(uuid())
+  projectId    String
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name         String
+  goal         String?
+  startDate    DateTime
+  endDate      DateTime
+  isActive     Boolean             @default(false)
+  status       String              @default("PLANNING")
+  cadence      String              @default("WEEKLY") // WEEKLY, MONTHLY
+  backlogItems SprintBacklogItem[]
+  tasks        Task[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+}
+
+model SprintBacklogItem {
+  id          String   @id @default(uuid())
+  sprintId    String
+  sprint      Sprint   @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  priority    String    @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  status      String    @default("PLANNED") // PLANNED, IN_PROGRESS, SUCCESS, FLEXIBLE_REVISED
+  startDate   DateTime?
+  endDate     DateTime?
+  assigneeId  String?
+  assignee    User?    @relation("BacklogAssignee", fields: [assigneeId], references: [id])
+  kanbanTasks Task[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Task {
+  id            String             @id @default(uuid())
+  sprintId      String?
+  sprint        Sprint?            @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  backlogItemId String?
+  backlogItem   SprintBacklogItem? @relation(fields: [backlogItemId], references: [id], onDelete: SetNull)
+  projectId     String
+  project       Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  assigneeId    String?
+  assignee      User?              @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  assignees     TaskAssignee[]
+  reporterId    String?
+  reporter      User?              @relation("TaskReporter", fields: [reporterId], references: [id])
+  status        String             @default("TODO")
+  priority      String             @default("MEDIUM")
+  myTaskCategory String            @default("THIS_WEEK")
+  orderIndex    Int                @default(0)
+  dueDate       DateTime?
+  comments      TaskComment[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+model TaskAssignee {
+  taskId String
+  userId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
+}
+
+model TaskComment {
+  id        String   @id @default(uuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+}
