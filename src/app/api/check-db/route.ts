@@ -1,41 +1,36 @@
-export const runtime = 'edge';
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const d1Exists = !!(process.env as any).DB;
+    let d1Found = false;
     let userCount = 0;
-    let usersList: any[] = [];
-    let dbErrorDetail = null;
+    let sampleUsers: any[] = [];
+    let errMessage = null;
 
     try {
-      usersList = await prisma.user.findMany({
-        take: 5,
-        select: { id: true, email: true, name: true }
-      });
-      userCount = usersList.length;
-    } catch (dbError: any) {
-      dbErrorDetail = {
-        message: dbError.message,
-        stack: dbError.stack
-      };
+      const { getRequestContext } = await import('@cloudflare/next-on-pages');
+      const ctx = getRequestContext();
+      if (ctx && ctx.env && ctx.env.DB) {
+        d1Found = true;
+        const db = ctx.env.DB;
+        const stmt = db.prepare("SELECT id, name, email FROM User LIMIT 5");
+        const res = await stmt.all();
+        sampleUsers = res.results || [];
+        userCount = sampleUsers.length;
+      }
+    } catch (e: any) {
+      errMessage = e.message;
     }
 
     return NextResponse.json({
       success: true,
-      message: "Diagnostics page",
-      d1Exists,
-      dbStatus: dbErrorDetail ? "DATABASE_ERROR" : "CONNECTED",
-      dbError: dbErrorDetail,
+      d1Found,
       userCount,
-      sampleUsers: usersList
+      sampleUsers,
+      errMessage,
+      timestamp: new Date().toISOString()
     });
   } catch (error: any) {
-    return NextResponse.json({
-      success: false,
-      message: "General error in check-db",
-      error: error.message
-    });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
