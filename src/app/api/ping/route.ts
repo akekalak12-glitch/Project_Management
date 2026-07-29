@@ -1,7 +1,8 @@
-export const runtime = 'edge';
-
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  return NextResponse.json({ ok: true, runtime: typeof EdgeRuntime !== 'undefined' ? 'edge' : 'node' });
+  return new Response(JSON.stringify({ status: "ok", time: new Date().toISOString() }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' }
+  });
 }
