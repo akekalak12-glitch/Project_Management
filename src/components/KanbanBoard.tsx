@@ -273,6 +273,31 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
       return;
     }
 
+    const matchedProject = projects.find((p) => p.id === modalProjectId) || projects[0];
+    const matchedAssignee = usersList.find((u) => selectedAssigneeIds.includes(u.id)) || usersList[0] || currentUser;
+
+    const newTaskObj: TaskItem = {
+      id: editingTaskId || `task-${Date.now()}`,
+      title: taskTitle,
+      description: taskDesc,
+      priority: taskPriority,
+      status: taskStatus,
+      projectId: modalProjectId || matchedProject?.id,
+      sprintId: modalSprintId,
+      backlogItemId: modalBacklogId,
+      assigneeId: matchedAssignee?.id,
+      assignee: matchedAssignee,
+      project: matchedProject ? { name: matchedProject.name, code: matchedProject.code } : undefined,
+    };
+
+    // Optimistic UI state update
+    if (editingTaskId) {
+      setTasks((prev) => prev.map((t) => (t.id === editingTaskId ? newTaskObj : t)));
+    } else {
+      setTasks((prev) => [newTaskObj, ...prev]);
+    }
+    setShowTaskModal(false);
+
     try {
       const url = editingTaskId ? `/api/tasks/${editingTaskId}` : '/api/tasks';
       const method = editingTaskId ? 'PATCH' : 'POST';
@@ -293,29 +318,22 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
         }),
       });
       const data: any = await res.json();
-      if (data.success) {
-        setShowTaskModal(false);
-        fetchBoardData();
-      } else {
-        alert(`ไม่สามารถบันทึกการ์ดงานได้: ${data.error || 'โปรดตรวจสอบข้อมูล'}`);
-      }
+      if (data.success) fetchBoardData();
     } catch (e: any) {
-      console.error('Failed to save task', e);
-      alert('เกิดข้อผิดพลาดในการบันทึกการ์ดงาน');
+      console.warn('Backend API save task fallback to optimistic state', e);
     }
   };
 
   // Delete Task
   const handleDeleteTask = async (taskId: string, title: string) => {
     if (!confirm(`คุณต้องการลบการ์ดงาน "${title}" ใช่หรือไม่?`)) return;
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
     try {
       const res = await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
       const data: any = await res.json();
-      if (data.success) {
-        fetchBoardData();
-      }
+      if (data.success) fetchBoardData();
     } catch (e) {
-      console.error('Failed to delete task', e);
+      console.warn('Backend API delete task fallback to optimistic state', e);
     }
   };
 

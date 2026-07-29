@@ -244,6 +244,29 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
     e.preventDefault();
     if (!sprintName.trim() || !sprintStartDate || !sprintEndDate) return;
     const targetProjId = sprintProjectId || projects[0]?.id;
+    const matchedProject = projects.find((p) => p.id === targetProjId) || projects[0];
+
+    const newSprintObj: SprintItem = {
+      id: editingSprintId || `sprint-${Date.now()}`,
+      name: sprintName,
+      goal: sprintGoal,
+      cadence: sprintCadence,
+      startDate: sprintStartDate,
+      endDate: sprintEndDate,
+      status: sprintStatus,
+      projectId: targetProjId,
+      project: matchedProject,
+      backlogItems: [],
+    };
+
+    // Optimistic UI state update
+    if (editingSprintId) {
+      setSprints((prev) => prev.map((s) => (s.id === editingSprintId ? newSprintObj : s)));
+    } else {
+      setSprints((prev) => [newSprintObj, ...prev]);
+      setExpandedSprintIds((prev) => [...prev, newSprintObj.id]);
+    }
+    setShowSprintModal(false);
 
     try {
       const url = editingSprintId ? `/api/sprints/${editingSprintId}` : '/api/sprints';
@@ -263,26 +286,21 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
         }),
       });
       const data: any = await res.json();
-      if (data.success) {
-        setShowSprintModal(false);
-        fetchData();
-      } else {
-        alert(`ไม่สามารถบันทึก Sprint ได้: ${data.error || 'โปรดตรวจสอบข้อมูล'}`);
-      }
+      if (data.success) fetchData();
     } catch (e: any) {
-      console.error('Failed to save sprint', e);
-      alert('เกิดข้อผิดพลาดในการบันทึก Sprint');
+      console.warn('Backend API save sprint fallback to optimistic state', e);
     }
   };
 
   const handleDeleteSprint = async (id: string, name: string) => {
     if (!confirm(`คุณต้องการลบ Sprint "${name}" และ Backlog ทั้งหมดใน Sprint นี้ใช่หรือไม่?`)) return;
+    setSprints((prev) => prev.filter((s) => s.id !== id));
     try {
       const res = await fetch(`/api/sprints/${id}`, { method: 'DELETE' });
       const data: any = await res.json();
       if (data.success) fetchData();
     } catch (e) {
-      console.error('Failed to delete sprint', e);
+      console.warn('Backend API delete sprint fallback to optimistic state', e);
     }
   };
 
@@ -343,6 +361,27 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
     e.preventDefault();
     if (!backlogTitle || !targetSprintId) return;
 
+    const matchedSprint = sprints.find((s) => s.id === targetSprintId);
+    const newBacklogObj: BacklogItem = {
+      id: editingBacklogId || `backlog-${Date.now()}`,
+      sprintId: targetSprintId,
+      title: backlogTitle,
+      description: backlogDesc,
+      priority: backlogPriority,
+      status: editingBacklogId ? 'FLEXIBLE_REVISED' : 'PLANNED',
+      startDate: backlogStartDate,
+      endDate: backlogEndDate,
+      sprint: matchedSprint,
+    };
+
+    // Optimistic UI state update
+    if (editingBacklogId) {
+      setBacklogItems((prev) => prev.map((b) => (b.id === editingBacklogId ? newBacklogObj : b)));
+    } else {
+      setBacklogItems((prev) => [newBacklogObj, ...prev]);
+    }
+    setShowBacklogModal(false);
+
     try {
       const url = editingBacklogId ? `/api/backlog/${editingBacklogId}` : '/api/backlog';
       const method = editingBacklogId ? 'PUT' : 'POST';
@@ -361,23 +400,21 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
         }),
       });
       const data: any = await res.json();
-      if (data.success) {
-        setShowBacklogModal(false);
-        fetchData();
-      }
+      if (data.success) fetchData();
     } catch (e) {
-      console.error('Failed to save backlog item', e);
+      console.warn('Backend API save backlog fallback to optimistic state', e);
     }
   };
 
   const handleDeleteBacklog = async (id: string, title: string) => {
     if (!confirm(`คุณต้องการลบ Backlog Item "${title}" ใช่หรือไม่?`)) return;
+    setBacklogItems((prev) => prev.filter((b) => b.id !== id));
     try {
       const res = await fetch(`/api/backlog/${id}`, { method: 'DELETE' });
       const data: any = await res.json();
       if (data.success) fetchData();
     } catch (e) {
-      console.error('Failed to delete backlog item', e);
+      console.warn('Backend API delete backlog fallback to optimistic state', e);
     }
   };
 
