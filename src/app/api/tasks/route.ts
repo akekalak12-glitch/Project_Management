@@ -45,7 +45,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body: any = await request.json();
 
     if (!body.title || !body.title.trim()) {
       return NextResponse.json({ success: false, error: 'โปรดระบุชื่อการ์ดงาน (Title)' }, { status: 400 });

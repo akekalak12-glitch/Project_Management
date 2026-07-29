@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body: any = await request.json();
     const target = Number(body.targetValue) || 100;
     const current = Number(body.currentValue) || 0;
     const progress = Math.min(100, Math.round((current / target) * 100));

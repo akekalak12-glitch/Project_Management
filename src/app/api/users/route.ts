@@ -31,7 +31,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body: any = await request.json();
     const avatarSeed = encodeURIComponent(body.name || 'User');
 
     const user = await prisma.user.create({

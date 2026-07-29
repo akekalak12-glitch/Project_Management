@@ -34,7 +34,7 @@ export async function PATCH(
 ) {
   try {
     const { id: taskId } = await params;
-    const body = await request.json();
+    const body: any = await request.json();
 
     const updateData: any = {};
     if (body.title !== undefined) updateData.title = body.title;

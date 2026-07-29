@@ -7,7 +7,7 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
+    const body: any = await request.json();
 
     const updateData: any = {
       name: body.name,

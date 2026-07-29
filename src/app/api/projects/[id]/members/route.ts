@@ -27,7 +27,7 @@ export async function POST(
 ) {
   try {
     const { id: projectId } = await params;
-    const body = await request.json();
+    const body: any = await request.json();
     const { userIds = [], projectRole = 'MEMBER' } = body;
 
     if (!Array.isArray(userIds)) {

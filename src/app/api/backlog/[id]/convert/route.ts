@@ -7,7 +7,7 @@ export async function POST(
 ) {
   try {
     const { id: backlogItemId } = await params;
-    const body = await request.json();
+    const body: any = await request.json();
 
     const backlogItem = await prisma.sprintBacklogItem.findUnique({
       where: { id: backlogItemId },
