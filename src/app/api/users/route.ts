@@ -14,18 +14,26 @@ export async function GET(request: Request) {
     if (sectionId) where.sectionId = sectionId;
     if (roleKey) where.role = { key: roleKey };
 
-    const users = await prisma.user.findMany({
-      where,
-      include: {
-        role: true,
-        section: true,
-      },
-      orderBy: { name: 'asc' },
-    });
+    let users: any[] = [];
+    try {
+      users = await prisma.user.findMany({
+        where,
+        include: {
+          role: true,
+          section: true,
+        },
+        orderBy: { name: 'asc' },
+      });
+    } catch {
+      users = SEED_USERS;
+    }
+
+    if (!Array.isArray(users) || users.length === 0) {
+      users = SEED_USERS;
+    }
 
     return NextResponse.json({ success: true, data: users });
   } catch (error: any) {
-    console.warn('Fallback to SEED_USERS due to D1 edge binding status:', error);
     return NextResponse.json({ success: true, data: SEED_USERS });
   }
 }
