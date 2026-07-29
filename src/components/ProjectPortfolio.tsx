@@ -60,9 +60,8 @@ export default function ProjectPortfolio() {
 
   const fetchProjectsData = async () => {
     try {
-      const uParam = currentUser?.id ? `?userId=${currentUser.id}` : '';
       const [resPrj, resSec, resUsers] = await Promise.all([
-        fetch(`/api/projects${uParam}`),
+        fetch('/api/projects'),
         fetch('/api/sections'),
         fetch('/api/users'),
       ]);
@@ -156,15 +155,7 @@ export default function ProjectPortfolio() {
     }
   };
 
-  const isFullAccessUser = isExecutive || isAdvisor;
-
-  const accessibleProjects = isFullAccessUser
-    ? projects
-    : projects.filter((p) =>
-        p.ownerId === currentUser?.id ||
-        p.owner?.id === currentUser?.id ||
-        p.members?.some((m: any) => m.userId === currentUser?.id || m.user?.id === currentUser?.id)
-      );
+  const accessibleProjects = projects;
 
   const filteredProjects = accessibleProjects.filter((p) => {
     const matchesSearch =
