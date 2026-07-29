@@ -91,7 +91,7 @@ export default function ProjectPortfolio() {
     setPrjName('');
     setPrjCode(`PRJ-${Date.now().toString().slice(-4)}`);
     setPrjDesc('');
-    setPrjSecId(sections[0]?.id || 'sec-it-uuid');
+    setPrjSecId(sections[0]?.id || '87eddf4e-7d77-4caf-acc5-9e4e1e2d5f22');
     setPrjOwnerId(currentUser?.id || projectOwners[0]?.id || '8b1f19e0-959c-4c6f-9f4e-fcc4ee8466d4');
     setPrjStatus('PLANNING');
     setShowPrjModal(false);
