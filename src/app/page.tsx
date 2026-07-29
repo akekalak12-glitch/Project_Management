@@ -48,10 +48,7 @@ function MainAppContent() {
     );
   }
 
-  // If not logged in, render interactive Login Screen!
-  if (!isLoggedIn || !currentUser) {
-    return <LoginForm />;
-  }
+
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
