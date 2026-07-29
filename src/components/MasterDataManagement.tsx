@@ -20,6 +20,44 @@ export default function MasterDataManagement({ focusSection = 'master' }: Master
   useEffect(() => {
     setUsers(LocalStorageManager.getUsers());
     setSections(LocalStorageManager.getSections());
+
+    // Sync with Database in background if API is reachable
+    const syncFromDatabase = async () => {
+      try {
+        const [resUsers, resSections] = await Promise.all([
+          fetch('/api/users'),
+          fetch('/api/sections'),
+        ]);
+        if (resUsers.ok) {
+          const dUsers: any = await resUsers.json();
+          if (dUsers.success && Array.isArray(dUsers.data) && dUsers.data.length > 0) {
+            setUsers((prev) => {
+              // Merge local items with DB items (preserving new local entries)
+              const dbIds = new Set(dUsers.data.map((u: any) => u.id));
+              const localOnly = prev.filter((u) => !dbIds.has(u.id));
+              const merged = [...dUsers.data, ...localOnly];
+              LocalStorageManager.setUsers(merged);
+              return merged;
+            });
+          }
+        }
+        if (resSections.ok) {
+          const dSections: any = await resSections.json();
+          if (dSections.success && Array.isArray(dSections.data) && dSections.data.length > 0) {
+            setSections((prev) => {
+              const dbIds = new Set(dSections.data.map((s: any) => s.id));
+              const localOnly = prev.filter((s) => !dbIds.has(s.id));
+              const merged = [...dSections.data, ...localOnly];
+              LocalStorageManager.setSections(merged);
+              return merged;
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('API sync fallback to local storage', e);
+      }
+    };
+    syncFromDatabase();
   }, []);
 
   const updateUsersState = (newUsers: UserProfile[] | ((prev: UserProfile[]) => UserProfile[])) => {
