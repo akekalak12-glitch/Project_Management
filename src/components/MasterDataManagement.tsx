@@ -4,60 +4,39 @@ import React, { useState, useEffect } from 'react';
 import { Database, Plus, Users, Building2, UserPlus, Shield, Edit2, Trash2, X } from 'lucide-react';
 import { UserProfile, Section } from '@/lib/auth-context';
 
-import { SEED_USERS, SEED_SECTIONS, SEED_ROLES } from '@/lib/data-store';
+import { SEED_ROLES } from '@/lib/data-store';
+import { LocalStorageManager } from '@/lib/storage-manager';
 
 interface MasterDataProps {
   focusSection?: 'master' | 'roles';
 }
 
 export default function MasterDataManagement({ focusSection = 'master' }: MasterDataProps) {
-  const [users, setUsers] = useState<UserProfile[]>(SEED_USERS);
-  const [sections, setSections] = useState<Section[]>(SEED_SECTIONS);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
   const [roles, setRoles] = useState<any[]>(SEED_ROLES);
   const [loading, setLoading] = useState(false);
 
-  // Section Modal State
-  const [showSecModal, setShowSecModal] = useState(false);
-  const [editingSecId, setEditingSecId] = useState<string | null>(null);
-  const [secName, setSecName] = useState('');
-  const [secCode, setSecCode] = useState('');
-  const [secDesc, setSecDesc] = useState('');
+  useEffect(() => {
+    setUsers(LocalStorageManager.getUsers());
+    setSections(LocalStorageManager.getSections());
+  }, []);
 
-  // User Modal State
-  const [showUserModal, setShowUserModal] = useState(false);
-  const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [userName, setUserName] = useState('');
-  const [userEmail, setUserEmail] = useState('');
-  const [userRoleId, setUserRoleId] = useState('');
-  const [userSecId, setUserSecId] = useState('');
-
-  const fetchData = async () => {
-    try {
-      const [resUsers, resSections, resRoles] = await Promise.all([
-        fetch('/api/users'),
-        fetch('/api/sections'),
-        fetch('/api/roles'),
-      ]);
-      if (resUsers.ok) {
-        const dataUsers: any = await resUsers.json();
-        if (dataUsers.success && Array.isArray(dataUsers.data) && dataUsers.data.length > 0) setUsers(dataUsers.data);
-      }
-      if (resSections.ok) {
-        const dataSections: any = await resSections.json();
-        if (dataSections.success && Array.isArray(dataSections.data) && dataSections.data.length > 0) setSections(dataSections.data);
-      }
-      if (resRoles.ok) {
-        const dataRoles: any = await resRoles.json();
-        if (dataRoles.success && Array.isArray(dataRoles.data) && dataRoles.data.length > 0) setRoles(dataRoles.data);
-      }
-    } catch (e) {
-      console.warn('API fetch master data fallback to seeded D1 dataset', e);
-    }
+  const updateUsersState = (newUsers: UserProfile[] | ((prev: UserProfile[]) => UserProfile[])) => {
+    setUsers((prev) => {
+      const nextUsers = typeof newUsers === 'function' ? newUsers(prev) : newUsers;
+      LocalStorageManager.setUsers(nextUsers);
+      return nextUsers;
+    });
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const updateSectionsState = (newSections: Section[] | ((prev: Section[]) => Section[])) => {
+    setSections((prev) => {
+      const nextSections = typeof newSections === 'function' ? newSections(prev) : newSections;
+      LocalStorageManager.setSections(nextSections);
+      return nextSections;
+    });
+  };
 
   // Section Handlers
   const handleOpenAddSec = () => {
@@ -88,11 +67,11 @@ export default function MasterDataManagement({ focusSection = 'master' }: Master
       description: secDesc,
     };
 
-    // Optimistic state update
+    // Optimistic state update with local storage sync
     if (editingSecId) {
-      setSections((prev) => prev.map((s) => (s.id === editingSecId ? newSec : s)));
+      updateSectionsState((prev) => prev.map((s) => (s.id === editingSecId ? newSec : s)));
     } else {
-      setSections((prev) => [newSec, ...prev]);
+      updateSectionsState((prev) => [newSec, ...prev]);
     }
     setShowSecModal(false);
 
@@ -100,13 +79,11 @@ export default function MasterDataManagement({ focusSection = 'master' }: Master
       const url = editingSecId ? `/api/sections/${editingSecId}` : '/api/sections';
       const method = editingSecId ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: secName, code: secCode, description: secDesc }),
       });
-      const data: any = await res.json();
-      if (data.success) fetchData();
     } catch (e) {
       console.warn('Backend API save section fallback to optimistic state', e);
     }
@@ -114,11 +91,9 @@ export default function MasterDataManagement({ focusSection = 'master' }: Master
 
   const handleDeleteSection = async (id: string, name: string) => {
     if (!confirm(`คุณต้องการลบส่วนงาน "${name}" ใช่หรือไม่?`)) return;
-    setSections((prev) => prev.filter((s) => s.id !== id));
+    updateSectionsState((prev) => prev.filter((s) => s.id !== id));
     try {
-      const res = await fetch(`/api/sections/${id}`, { method: 'DELETE' });
-      const data: any = await res.json();
-      if (data.success) fetchData();
+      await fetch(`/api/sections/${id}`, { method: 'DELETE' });
     } catch (e) {
       console.warn('Backend API delete section fallback to optimistic state', e);
     }
@@ -161,11 +136,11 @@ export default function MasterDataManagement({ focusSection = 'master' }: Master
       avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userName)}`,
     };
 
-    // Optimistic state update - Updates UI immediately!
+    // Optimistic state update with local storage sync
     if (editingUserId) {
-      setUsers((prev) => prev.map((u) => (u.id === editingUserId ? newUserObj : u)));
+      updateUsersState((prev) => prev.map((u) => (u.id === editingUserId ? newUserObj : u)));
     } else {
-      setUsers((prev) => [newUserObj, ...prev]);
+      updateUsersState((prev) => [newUserObj, ...prev]);
     }
     setShowUserModal(false);
 
@@ -173,7 +148,7 @@ export default function MasterDataManagement({ focusSection = 'master' }: Master
       const url = editingUserId ? `/api/users/${editingUserId}` : '/api/users';
       const method = editingUserId ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -183,8 +158,6 @@ export default function MasterDataManagement({ focusSection = 'master' }: Master
           sectionId: userSecId || null,
         }),
       });
-      const data: any = await res.json();
-      if (data.success) fetchData();
     } catch (e) {
       console.warn('Backend API save user fallback to optimistic state', e);
     }
@@ -192,11 +165,9 @@ export default function MasterDataManagement({ focusSection = 'master' }: Master
 
   const handleDeleteUser = async (id: string, name: string) => {
     if (!confirm(`คุณต้องการลบเจ้าหน้าที่ "${name}" ใช่หรือไม่?`)) return;
-    setUsers((prev) => prev.filter((u) => u.id !== id));
+    updateUsersState((prev) => prev.filter((u) => u.id !== id));
     try {
-      const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
-      const data: any = await res.json();
-      if (data.success) fetchData();
+      await fetch(`/api/users/${id}`, { method: 'DELETE' });
     } catch (e) {
       console.warn('Backend API delete user fallback to optimistic state', e);
     }

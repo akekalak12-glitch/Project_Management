@@ -33,16 +33,30 @@ interface ProjectItem {
   _count?: { tasks: number };
 }
 
-import { SEED_PROJECTS, SEED_SECTIONS, SEED_USERS } from '@/lib/data-store';
+import { LocalStorageManager } from '@/lib/storage-manager';
 
 export default function ProjectPortfolio() {
   const { currentUser, canCreateProject, canManageTeam, isExecutive, isAdvisor } = useAuth();
-  const [projects, setProjects] = useState<ProjectItem[]>(SEED_PROJECTS as any);
-  const [sections, setSections] = useState<any[]>(SEED_SECTIONS);
-  const [projectOwners, setProjectOwners] = useState<any[]>(SEED_USERS);
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
+  const [projectOwners, setProjectOwners] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [selectedSection, setSelectedSection] = useState('ALL');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setProjects(LocalStorageManager.getProjects());
+    setSections(LocalStorageManager.getSections());
+    setProjectOwners(LocalStorageManager.getUsers());
+  }, []);
+
+  const updateProjectsState = (newPrjs: ProjectItem[] | ((prev: ProjectItem[]) => ProjectItem[])) => {
+    setProjects((prev) => {
+      const nextPrjs = typeof newPrjs === 'function' ? newPrjs(prev) : newPrjs;
+      LocalStorageManager.setProjects(nextPrjs);
+      return nextPrjs;
+    });
+  };
 
   // Team Formation Modal State
   const [activeProjectForTeam, setActiveProjectForTeam] = useState<{ id: string; name: string } | null>(null);
@@ -132,11 +146,11 @@ export default function ProjectPortfolio() {
       _count: { tasks: 0 },
     };
 
-    // Optimistic UI state update
+    // Optimistic UI state update with local storage persistence
     if (editingPrjId) {
-      setProjects((prev) => prev.map((p) => (p.id === editingPrjId ? newPrj : p)));
+      updateProjectsState((prev) => prev.map((p) => (p.id === editingPrjId ? newPrj : p)));
     } else {
-      setProjects((prev) => [newPrj, ...prev]);
+      updateProjectsState((prev) => [newPrj, ...prev]);
     }
     setShowPrjModal(false);
 
@@ -144,7 +158,7 @@ export default function ProjectPortfolio() {
       const url = editingPrjId ? `/api/projects/${editingPrjId}` : '/api/projects';
       const method = editingPrjId ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -156,9 +170,6 @@ export default function ProjectPortfolio() {
           status: prjStatus,
         }),
       });
-
-      const data: any = await res.json();
-      if (data.success) fetchProjectsData();
     } catch (e: any) {
       console.warn('Backend API save project fallback to optimistic state', e);
     }
@@ -166,11 +177,9 @@ export default function ProjectPortfolio() {
 
   const handleDeleteProject = async (id: string, name: string) => {
     if (!confirm(`คุณต้องการลบโครงการ "${name}" ใช่หรือไม่?`)) return;
-    setProjects((prev) => prev.filter((p) => p.id !== id));
+    updateProjectsState((prev) => prev.filter((p) => p.id !== id));
     try {
-      const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
-      const data: any = await res.json();
-      if (data.success) fetchProjectsData();
+      await fetch(`/api/projects/${id}`, { method: 'DELETE' });
     } catch (e) {
       console.warn('Backend API delete project fallback to optimistic state', e);
     }

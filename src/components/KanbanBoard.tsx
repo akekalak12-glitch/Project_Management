@@ -69,15 +69,31 @@ interface KanbanBoardProps {
   initialSprintId?: string;
 }
 
-import { SEED_TASKS, SEED_SPRINTS, SEED_PROJECTS, SEED_BACKLOGS, SEED_USERS } from '@/lib/data-store';
+import { LocalStorageManager } from '@/lib/storage-manager';
 
 export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
   const { currentUser, isStaff, isExecutive, isAdvisor } = useAuth();
-  const [tasks, setTasks] = useState<TaskItem[]>(SEED_TASKS as any);
-  const [sprints, setSprints] = useState<SprintItem[]>(SEED_SPRINTS as any);
-  const [projects, setProjects] = useState<any[]>(SEED_PROJECTS);
-  const [backlogs, setBacklogs] = useState<any[]>(SEED_BACKLOGS);
-  const [usersList, setUsersList] = useState<any[]>(SEED_USERS);
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [sprints, setSprints] = useState<SprintItem[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [backlogs, setBacklogs] = useState<any[]>([]);
+  const [usersList, setUsersList] = useState<any[]>([]);
+
+  useEffect(() => {
+    setTasks(LocalStorageManager.getTasks());
+    setSprints(LocalStorageManager.getSprints());
+    setProjects(LocalStorageManager.getProjects());
+    setBacklogs(LocalStorageManager.getBacklogs());
+    setUsersList(LocalStorageManager.getUsers());
+  }, []);
+
+  const updateTasksState = (newTasks: TaskItem[] | ((prev: TaskItem[]) => TaskItem[])) => {
+    setTasks((prev) => {
+      const nextTasks = typeof newTasks === 'function' ? newTasks(prev) : newTasks;
+      LocalStorageManager.setTasks(nextTasks);
+      return nextTasks;
+    });
+  };
 
   // BOARD SELECTION
   const [selectedProjectId, setSelectedProjectId] = useState<string>('ALL');
@@ -149,7 +165,7 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
 
   // Update Task Status
   const updateTaskStatus = async (taskId: string, newColumnStatus: 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE') => {
-    setTasks((prevTasks) =>
+    updateTasksState((prevTasks) =>
       prevTasks.map((t) => (t.id === taskId ? { ...t, status: newColumnStatus } : t))
     );
 
@@ -162,18 +178,13 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
     }
 
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
+      await fetch(`/api/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newColumnStatus }),
       });
-      const data: any = await res.json();
-      if (data.success) {
-        fetchBoardData();
-      }
     } catch (e) {
       console.error('Failed to update task status', e);
-      fetchBoardData();
     }
   };
 
@@ -290,11 +301,11 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
       project: matchedProject ? { name: matchedProject.name, code: matchedProject.code } : undefined,
     };
 
-    // Optimistic UI state update
+    // Optimistic UI state update with LocalStorage sync
     if (editingTaskId) {
-      setTasks((prev) => prev.map((t) => (t.id === editingTaskId ? newTaskObj : t)));
+      updateTasksState((prev) => prev.map((t) => (t.id === editingTaskId ? newTaskObj : t)));
     } else {
-      setTasks((prev) => [newTaskObj, ...prev]);
+      updateTasksState((prev) => [newTaskObj, ...prev]);
     }
     setShowTaskModal(false);
 
@@ -302,7 +313,7 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
       const url = editingTaskId ? `/api/tasks/${editingTaskId}` : '/api/tasks';
       const method = editingTaskId ? 'PATCH' : 'POST';
 
-      const res = await fetch(url, {
+      await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -317,8 +328,6 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
           assigneeIds: selectedAssigneeIds,
         }),
       });
-      const data: any = await res.json();
-      if (data.success) fetchBoardData();
     } catch (e: any) {
       console.warn('Backend API save task fallback to optimistic state', e);
     }
@@ -327,11 +336,9 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
   // Delete Task
   const handleDeleteTask = async (taskId: string, title: string) => {
     if (!confirm(`คุณต้องการลบการ์ดงาน "${title}" ใช่หรือไม่?`)) return;
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    updateTasksState((prev) => prev.filter((t) => t.id !== taskId));
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
-      const data: any = await res.json();
-      if (data.success) fetchBoardData();
+      await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
     } catch (e) {
       console.warn('Backend API delete task fallback to optimistic state', e);
     }

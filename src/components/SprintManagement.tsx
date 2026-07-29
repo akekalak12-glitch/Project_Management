@@ -65,72 +65,43 @@ interface SprintManagementProps {
   onOpenKanbanForSprint?: (sprintId: string) => void;
 }
 
-import { SEED_SPRINTS, SEED_PROJECTS, SEED_BACKLOGS } from '@/lib/data-store';
+import { LocalStorageManager } from '@/lib/storage-manager';
 
 export default function SprintManagement({ onOpenKanbanForSprint }: SprintManagementProps) {
   const { currentUser, canCreateProject, isExecutive, isAdvisor } = useAuth();
-  const [sprints, setSprints] = useState<SprintItem[]>(SEED_SPRINTS as any);
-  const [projects, setProjects] = useState<any[]>(SEED_PROJECTS);
+  const [sprints, setSprints] = useState<SprintItem[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
   const [selectedCadence, setSelectedCadence] = useState<'ALL' | 'WEEKLY' | 'MONTHLY'>('ALL');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('ALL');
-  const [backlogItems, setBacklogItems] = useState<BacklogItem[]>(SEED_BACKLOGS as any);
+  const [backlogItems, setBacklogItems] = useState<BacklogItem[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Drill-down expanded Sprint rows state
-  const [expandedSprintIds, setExpandedSprintIds] = useState<string[]>(SEED_SPRINTS.map((s: any) => s.id));
-
-  // New/Edit Sprint Modal State
-  const [showSprintModal, setShowSprintModal] = useState(false);
-  const [editingSprintId, setEditingSprintId] = useState<string | null>(null);
-  const [sprintName, setSprintName] = useState('');
-  const [sprintGoal, setSprintGoal] = useState('');
-  const [sprintCadence, setSprintCadence] = useState<'WEEKLY' | 'MONTHLY'>('WEEKLY');
-  const [sprintProjectId, setSprintProjectId] = useState('');
-  const [sprintStartDate, setSprintStartDate] = useState('');
-  const [sprintEndDate, setSprintEndDate] = useState('');
-  const [sprintStatus, setSprintStatus] = useState('ACTIVE');
-
-  // Backlog Modal State (Add/Edit) with Period Slot Selector
-  const [showBacklogModal, setShowBacklogModal] = useState(false);
-  const [editingBacklogId, setEditingBacklogId] = useState<string | null>(null);
-  const [backlogTitle, setBacklogTitle] = useState('');
-  const [backlogDesc, setBacklogDesc] = useState('');
-  const [backlogPriority, setBacklogPriority] = useState('MEDIUM');
-  const [backlogStartDate, setBacklogStartDate] = useState('');
-  const [backlogEndDate, setBacklogEndDate] = useState('');
-  const [targetSprintId, setTargetSprintId] = useState('');
-  const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(0);
-
-  const fetchData = async () => {
-    try {
-      const [resSprints, resProjects, resBacklogs] = await Promise.all([
-        fetch('/api/sprints'),
-        fetch('/api/projects'),
-        fetch('/api/backlog'),
-      ]);
-      if (resSprints.ok) {
-        const dataSprints: any = await resSprints.json();
-        if (dataSprints.success && Array.isArray(dataSprints.data) && dataSprints.data.length > 0) {
-          setSprints(dataSprints.data);
-          setExpandedSprintIds(dataSprints.data.map((s: any) => s.id));
-        }
-      }
-      if (resProjects.ok) {
-        const dataProjects: any = await resProjects.json();
-        if (dataProjects.success && Array.isArray(dataProjects.data) && dataProjects.data.length > 0) setProjects(dataProjects.data);
-      }
-      if (resBacklogs.ok) {
-        const dataBacklogs: any = await resBacklogs.json();
-        if (dataBacklogs.success && Array.isArray(dataBacklogs.data) && dataBacklogs.data.length > 0) setBacklogItems(dataBacklogs.data);
-      }
-    } catch (e) {
-      console.warn('API fetch sprints fallback to seeded D1 dataset', e);
-    }
-  };
+  const [expandedSprintIds, setExpandedSprintIds] = useState<string[]>([]);
 
   useEffect(() => {
-    fetchData();
-  }, [currentUser?.id]);
+    const loadedSprints = LocalStorageManager.getSprints();
+    setSprints(loadedSprints);
+    setExpandedSprintIds(loadedSprints.map((s: any) => s.id));
+    setProjects(LocalStorageManager.getProjects());
+    setBacklogItems(LocalStorageManager.getBacklogs());
+  }, []);
+
+  const updateSprintsState = (newSprints: SprintItem[] | ((prev: SprintItem[]) => SprintItem[])) => {
+    setSprints((prev) => {
+      const nextSprints = typeof newSprints === 'function' ? newSprints(prev) : newSprints;
+      LocalStorageManager.setSprints(nextSprints);
+      return nextSprints;
+    });
+  };
+
+  const updateBacklogsState = (newBacklogs: BacklogItem[] | ((prev: BacklogItem[]) => BacklogItem[])) => {
+    setBacklogItems((prev) => {
+      const nextBacklogs = typeof newBacklogs === 'function' ? newBacklogs(prev) : newBacklogs;
+      LocalStorageManager.setBacklogs(nextBacklogs);
+      return nextBacklogs;
+    });
+  };
 
   // Helper to calculate total number of slots (Weeks or Calendar Months) in a Sprint
   const calculateSprintSlots = (sprint: SprintItem): PeriodSlot[] => {
@@ -259,11 +230,11 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
       backlogItems: [],
     };
 
-    // Optimistic UI state update
+    // Optimistic UI state update with LocalStorage sync
     if (editingSprintId) {
-      setSprints((prev) => prev.map((s) => (s.id === editingSprintId ? newSprintObj : s)));
+      updateSprintsState((prev) => prev.map((s) => (s.id === editingSprintId ? newSprintObj : s)));
     } else {
-      setSprints((prev) => [newSprintObj, ...prev]);
+      updateSprintsState((prev) => [newSprintObj, ...prev]);
       setExpandedSprintIds((prev) => [...prev, newSprintObj.id]);
     }
     setShowSprintModal(false);
@@ -272,7 +243,7 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
       const url = editingSprintId ? `/api/sprints/${editingSprintId}` : '/api/sprints';
       const method = editingSprintId ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -285,8 +256,6 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
           status: sprintStatus,
         }),
       });
-      const data: any = await res.json();
-      if (data.success) fetchData();
     } catch (e: any) {
       console.warn('Backend API save sprint fallback to optimistic state', e);
     }
@@ -294,11 +263,9 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
 
   const handleDeleteSprint = async (id: string, name: string) => {
     if (!confirm(`คุณต้องการลบ Sprint "${name}" และ Backlog ทั้งหมดใน Sprint นี้ใช่หรือไม่?`)) return;
-    setSprints((prev) => prev.filter((s) => s.id !== id));
+    updateSprintsState((prev) => prev.filter((s) => s.id !== id));
     try {
-      const res = await fetch(`/api/sprints/${id}`, { method: 'DELETE' });
-      const data: any = await res.json();
-      if (data.success) fetchData();
+      await fetch(`/api/sprints/${id}`, { method: 'DELETE' });
     } catch (e) {
       console.warn('Backend API delete sprint fallback to optimistic state', e);
     }
@@ -374,11 +341,11 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
       sprint: matchedSprint,
     };
 
-    // Optimistic UI state update
+    // Optimistic UI state update with LocalStorage sync
     if (editingBacklogId) {
-      setBacklogItems((prev) => prev.map((b) => (b.id === editingBacklogId ? newBacklogObj : b)));
+      updateBacklogsState((prev) => prev.map((b) => (b.id === editingBacklogId ? newBacklogObj : b)));
     } else {
-      setBacklogItems((prev) => [newBacklogObj, ...prev]);
+      updateBacklogsState((prev) => [newBacklogObj, ...prev]);
     }
     setShowBacklogModal(false);
 
@@ -386,7 +353,7 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
       const url = editingBacklogId ? `/api/backlog/${editingBacklogId}` : '/api/backlog';
       const method = editingBacklogId ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -399,8 +366,6 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
           status: editingBacklogId ? 'FLEXIBLE_REVISED' : 'PLANNED',
         }),
       });
-      const data: any = await res.json();
-      if (data.success) fetchData();
     } catch (e) {
       console.warn('Backend API save backlog fallback to optimistic state', e);
     }
@@ -408,11 +373,9 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
 
   const handleDeleteBacklog = async (id: string, title: string) => {
     if (!confirm(`คุณต้องการลบ Backlog Item "${title}" ใช่หรือไม่?`)) return;
-    setBacklogItems((prev) => prev.filter((b) => b.id !== id));
+    updateBacklogsState((prev) => prev.filter((b) => b.id !== id));
     try {
-      const res = await fetch(`/api/backlog/${id}`, { method: 'DELETE' });
-      const data: any = await res.json();
-      if (data.success) fetchData();
+      await fetch(`/api/backlog/${id}`, { method: 'DELETE' });
     } catch (e) {
       console.warn('Backend API delete backlog fallback to optimistic state', e);
     }
