@@ -13,8 +13,8 @@ function processDirectory(dir) {
     } else if (file === 'route.ts' || file === 'route.js') {
       let content = fs.readFileSync(fullPath, 'utf8');
       if (!content.includes("export const runtime = 'edge'")) {
-        console.log(`Adding edge runtime to: ${fullPath}`);
-        content = `export const runtime = 'edge';\n\n` + content;
+        console.log(`Injecting edge runtime to: ${fullPath}`);
+        content = `export const runtime = 'edge';\n` + content;
         fs.writeFileSync(fullPath, content, 'utf8');
       }
     }
@@ -23,7 +23,5 @@ function processDirectory(dir) {
 
 if (fs.existsSync(apiDir)) {
   processDirectory(apiDir);
-  console.log('Finished updating API routes to Edge Runtime.');
-} else {
-  console.error('API directory not found at:', apiDir);
+  console.log('Successfully injected edge runtime flag for Cloudflare build.');
 }
