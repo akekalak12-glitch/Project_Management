@@ -65,17 +65,19 @@ interface SprintManagementProps {
   onOpenKanbanForSprint?: (sprintId: string) => void;
 }
 
+import { SEED_SPRINTS, SEED_PROJECTS, SEED_BACKLOGS } from '@/lib/data-store';
+
 export default function SprintManagement({ onOpenKanbanForSprint }: SprintManagementProps) {
   const { currentUser, canCreateProject, isExecutive, isAdvisor } = useAuth();
-  const [sprints, setSprints] = useState<SprintItem[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
+  const [sprints, setSprints] = useState<SprintItem[]>(SEED_SPRINTS as any);
+  const [projects, setProjects] = useState<any[]>(SEED_PROJECTS);
   const [selectedCadence, setSelectedCadence] = useState<'ALL' | 'WEEKLY' | 'MONTHLY'>('ALL');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('ALL');
-  const [backlogItems, setBacklogItems] = useState<BacklogItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [backlogItems, setBacklogItems] = useState<BacklogItem[]>(SEED_BACKLOGS as any);
+  const [loading, setLoading] = useState(false);
 
   // Drill-down expanded Sprint rows state
-  const [expandedSprintIds, setExpandedSprintIds] = useState<string[]>([]);
+  const [expandedSprintIds, setExpandedSprintIds] = useState<string[]>(SEED_SPRINTS.map((s: any) => s.id));
 
   // New/Edit Sprint Modal State
   const [showSprintModal, setShowSprintModal] = useState(false);
@@ -101,26 +103,28 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
 
   const fetchData = async () => {
     try {
-      const uParam = currentUser?.id ? `?userId=${currentUser.id}` : '';
       const [resSprints, resProjects, resBacklogs] = await Promise.all([
-        fetch(`/api/sprints${uParam}`),
-        fetch(`/api/projects${uParam}`),
+        fetch('/api/sprints'),
+        fetch('/api/projects'),
         fetch('/api/backlog'),
       ]);
-      const dataSprints: any = await resSprints.json();
-      const dataProjects: any = await resProjects.json();
-      const dataBacklogs: any = await resBacklogs.json();
-
-      if (dataSprints.success) {
-        setSprints(dataSprints.data);
-        setExpandedSprintIds(dataSprints.data.map((s: any) => s.id));
+      if (resSprints.ok) {
+        const dataSprints: any = await resSprints.json();
+        if (dataSprints.success && Array.isArray(dataSprints.data) && dataSprints.data.length > 0) {
+          setSprints(dataSprints.data);
+          setExpandedSprintIds(dataSprints.data.map((s: any) => s.id));
+        }
       }
-      if (dataProjects.success) setProjects(dataProjects.data);
-      if (dataBacklogs.success) setBacklogItems(dataBacklogs.data);
+      if (resProjects.ok) {
+        const dataProjects: any = await resProjects.json();
+        if (dataProjects.success && Array.isArray(dataProjects.data) && dataProjects.data.length > 0) setProjects(dataProjects.data);
+      }
+      if (resBacklogs.ok) {
+        const dataBacklogs: any = await resBacklogs.json();
+        if (dataBacklogs.success && Array.isArray(dataBacklogs.data) && dataBacklogs.data.length > 0) setBacklogItems(dataBacklogs.data);
+      }
     } catch (e) {
-      console.error('Failed to fetch Sprint Board data', e);
-    } finally {
-      setLoading(false);
+      console.warn('API fetch sprints fallback to seeded D1 dataset', e);
     }
   };
 

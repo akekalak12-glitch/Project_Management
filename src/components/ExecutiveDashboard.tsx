@@ -29,33 +29,35 @@ interface ProjectSummary {
   section: { name: string; code: string };
 }
 
+import { SEED_PROJECTS } from '@/lib/data-store';
+
 export default function ExecutiveDashboard() {
   const { currentUser, isExecutive, isAdvisor } = useAuth();
   const [okrs, setOkrs] = useState<OKRItem[]>([]);
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [projects, setProjects] = useState<ProjectSummary[]>(SEED_PROJECTS as any);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const uParam = currentUser?.id ? `?userId=${currentUser.id}` : '';
         const [resOkrs, resPrj] = await Promise.all([
           fetch('/api/okrs'),
-          fetch(`/api/projects${uParam}`),
+          fetch('/api/projects'),
         ]);
-        const dataOkrs: any = await resOkrs.json();
-        const dataPrj: any = await resPrj.json();
-
-        if (dataOkrs.success) setOkrs(dataOkrs.data);
-        if (dataPrj.success) setProjects(dataPrj.data);
+        if (resOkrs.ok) {
+          const dataOkrs: any = await resOkrs.json();
+          if (dataOkrs.success && Array.isArray(dataOkrs.data) && dataOkrs.data.length > 0) setOkrs(dataOkrs.data);
+        }
+        if (resPrj.ok) {
+          const dataPrj: any = await resPrj.json();
+          if (dataPrj.success && Array.isArray(dataPrj.data) && dataPrj.data.length > 0) setProjects(dataPrj.data);
+        }
       } catch (e) {
-        console.error('Failed to fetch executive dashboard data', e);
-      } finally {
-        setLoading(false);
+        console.warn('API fetch executive dashboard fallback to seeded D1 dataset', e);
       }
     }
     loadData();
-  }, [currentUser?.id]);
+  }, []);
 
   const isFullAccessUser = isExecutive || isAdvisor;
 

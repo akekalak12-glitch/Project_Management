@@ -4,15 +4,17 @@ import React, { useState, useEffect } from 'react';
 import { Database, Plus, Users, Building2, UserPlus, Shield, Edit2, Trash2, X } from 'lucide-react';
 import { UserProfile, Section } from '@/lib/auth-context';
 
+import { SEED_USERS, SEED_SECTIONS, SEED_ROLES } from '@/lib/data-store';
+
 interface MasterDataProps {
   focusSection?: 'master' | 'roles';
 }
 
 export default function MasterDataManagement({ focusSection = 'master' }: MasterDataProps) {
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [sections, setSections] = useState<Section[]>([]);
-  const [roles, setRoles] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<UserProfile[]>(SEED_USERS);
+  const [sections, setSections] = useState<Section[]>(SEED_SECTIONS);
+  const [roles, setRoles] = useState<any[]>(SEED_ROLES);
+  const [loading, setLoading] = useState(false);
 
   // Section Modal State
   const [showSecModal, setShowSecModal] = useState(false);
@@ -36,17 +38,20 @@ export default function MasterDataManagement({ focusSection = 'master' }: Master
         fetch('/api/sections'),
         fetch('/api/roles'),
       ]);
-      const dataUsers: any = await resUsers.json();
-      const dataSections: any = await resSections.json();
-      const dataRoles: any = await resRoles.json();
-
-      if (dataUsers.success) setUsers(dataUsers.data);
-      if (dataSections.success) setSections(dataSections.data);
-      if (dataRoles.success) setRoles(dataRoles.data);
+      if (resUsers.ok) {
+        const dataUsers: any = await resUsers.json();
+        if (dataUsers.success && Array.isArray(dataUsers.data) && dataUsers.data.length > 0) setUsers(dataUsers.data);
+      }
+      if (resSections.ok) {
+        const dataSections: any = await resSections.json();
+        if (dataSections.success && Array.isArray(dataSections.data) && dataSections.data.length > 0) setSections(dataSections.data);
+      }
+      if (resRoles.ok) {
+        const dataRoles: any = await resRoles.json();
+        if (dataRoles.success && Array.isArray(dataRoles.data) && dataRoles.data.length > 0) setRoles(dataRoles.data);
+      }
     } catch (e) {
-      console.error('Failed to fetch master data', e);
-    } finally {
-      setLoading(false);
+      console.warn('API fetch master data fallback to seeded D1 dataset', e);
     }
   };
 

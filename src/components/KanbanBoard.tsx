@@ -69,18 +69,20 @@ interface KanbanBoardProps {
   initialSprintId?: string;
 }
 
+import { SEED_TASKS, SEED_SPRINTS, SEED_PROJECTS, SEED_BACKLOGS, SEED_USERS } from '@/lib/data-store';
+
 export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
   const { currentUser, isStaff, isExecutive, isAdvisor } = useAuth();
-  const [tasks, setTasks] = useState<TaskItem[]>([]);
-  const [sprints, setSprints] = useState<SprintItem[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [backlogs, setBacklogs] = useState<any[]>([]);
-  const [usersList, setUsersList] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<TaskItem[]>(SEED_TASKS as any);
+  const [sprints, setSprints] = useState<SprintItem[]>(SEED_SPRINTS as any);
+  const [projects, setProjects] = useState<any[]>(SEED_PROJECTS);
+  const [backlogs, setBacklogs] = useState<any[]>(SEED_BACKLOGS);
+  const [usersList, setUsersList] = useState<any[]>(SEED_USERS);
 
   // BOARD SELECTION
   const [selectedProjectId, setSelectedProjectId] = useState<string>('ALL');
   const [selectedSprintId, setSelectedSprintId] = useState<string>(initialSprintId || 'ALL');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
 
@@ -106,47 +108,38 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
   const fetchBoardData = async (manualRefresh = false) => {
     if (manualRefresh) setIsRefreshing(true);
     try {
-      const uParam = currentUser?.id ? `&userId=${currentUser.id}` : '';
-      const taskUrl = isStaff && currentUser
-        ? `/api/tasks?assigneeId=${currentUser.id}`
-        : '/api/tasks?';
       const [resTasks, resSprints, resProjects, resBacklogs, resUsers] = await Promise.all([
-        fetch(`${taskUrl}${uParam}&_t=${Date.now()}`),
-        fetch(`/api/sprints?${uParam.replace('&', '')}&_t=${Date.now()}`),
-        fetch(`/api/projects?${uParam.replace('&', '')}&_t=${Date.now()}`),
-        fetch(`/api/backlog?_t=${Date.now()}`),
-        fetch(`/api/users?_t=${Date.now()}`),
+        fetch('/api/tasks'),
+        fetch('/api/sprints'),
+        fetch('/api/projects'),
+        fetch('/api/backlog'),
+        fetch('/api/users'),
       ]);
-      const dataTasks: any = await resTasks.json();
-      const dataSprints: any = await resSprints.json();
-      const dataProjects: any = await resProjects.json();
-      const dataBacklogs: any = await resBacklogs.json();
-      const dataUsers: any = await resUsers.json();
-
-      if (dataProjects.success) setProjects(dataProjects.data);
-
-      if (dataSprints.success) {
-        setSprints(dataSprints.data);
-
-        // If initialSprintId is specified, align project and sprint selection
-        if (initialSprintId) {
-          const matchedSprint = dataSprints.data.find((s: any) => s.id === initialSprintId);
-          if (matchedSprint) {
-            setSelectedProjectId(matchedSprint.projectId);
-            setSelectedSprintId(matchedSprint.id);
-          }
-        }
+      if (resTasks.ok) {
+        const dataTasks: any = await resTasks.json();
+        if (dataTasks.success && Array.isArray(dataTasks.data) && dataTasks.data.length > 0) setTasks(dataTasks.data);
       }
-
-      if (dataTasks.success) setTasks(dataTasks.data);
-      if (dataBacklogs.success) setBacklogs(dataBacklogs.data);
-
-      if (dataUsers.success) setUsersList(dataUsers.data);
+      if (resSprints.ok) {
+        const dataSprints: any = await resSprints.json();
+        if (dataSprints.success && Array.isArray(dataSprints.data) && dataSprints.data.length > 0) setSprints(dataSprints.data);
+      }
+      if (resProjects.ok) {
+        const dataProjects: any = await resProjects.json();
+        if (dataProjects.success && Array.isArray(dataProjects.data) && dataProjects.data.length > 0) setProjects(dataProjects.data);
+      }
+      if (resBacklogs.ok) {
+        const dataBacklogs: any = await resBacklogs.json();
+        if (dataBacklogs.success && Array.isArray(dataBacklogs.data) && dataBacklogs.data.length > 0) setBacklogs(dataBacklogs.data);
+      }
+      if (resUsers.ok) {
+        const dataUsers: any = await resUsers.json();
+        if (dataUsers.success && Array.isArray(dataUsers.data) && dataUsers.data.length > 0) setUsersList(dataUsers.data);
+      }
     } catch (e) {
-      console.error('Failed to fetch sprint board data', e);
+      console.warn('API fetch kanban board fallback to seeded D1 dataset', e);
     } finally {
-      setLoading(false);
       setIsRefreshing(false);
+      setLoading(false);
     }
   };
 

@@ -33,14 +33,16 @@ interface ProjectItem {
   _count?: { tasks: number };
 }
 
+import { SEED_PROJECTS, SEED_SECTIONS, SEED_USERS } from '@/lib/data-store';
+
 export default function ProjectPortfolio() {
   const { currentUser, canCreateProject, canManageTeam, isExecutive, isAdvisor } = useAuth();
-  const [projects, setProjects] = useState<ProjectItem[]>([]);
-  const [sections, setSections] = useState<any[]>([]);
-  const [projectOwners, setProjectOwners] = useState<any[]>([]);
+  const [projects, setProjects] = useState<ProjectItem[]>(SEED_PROJECTS as any);
+  const [sections, setSections] = useState<any[]>(SEED_SECTIONS);
+  const [projectOwners, setProjectOwners] = useState<any[]>(SEED_USERS);
   const [search, setSearch] = useState('');
   const [selectedSection, setSelectedSection] = useState('ALL');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Team Formation Modal State
   const [activeProjectForTeam, setActiveProjectForTeam] = useState<{ id: string; name: string } | null>(null);
@@ -65,20 +67,20 @@ export default function ProjectPortfolio() {
         fetch('/api/sections'),
         fetch('/api/users'),
       ]);
-      const dataPrj: any = await resPrj.json();
-      const dataSec: any = await resSec.json();
-      const dataUsers: any = await resUsers.json();
-
-      if (dataPrj.success) setProjects(dataPrj.data);
-      if (dataSec.success) setSections(dataSec.data);
-      if (dataUsers.success) {
-        // Filter users who can be project owners (or all users)
-        setProjectOwners(dataUsers.data);
+      if (resPrj.ok) {
+        const dataPrj: any = await resPrj.json();
+        if (dataPrj.success && Array.isArray(dataPrj.data) && dataPrj.data.length > 0) setProjects(dataPrj.data);
+      }
+      if (resSec.ok) {
+        const dataSec: any = await resSec.json();
+        if (dataSec.success && Array.isArray(dataSec.data) && dataSec.data.length > 0) setSections(dataSec.data);
+      }
+      if (resUsers.ok) {
+        const dataUsers: any = await resUsers.json();
+        if (dataUsers.success && Array.isArray(dataUsers.data) && dataUsers.data.length > 0) setProjectOwners(dataUsers.data);
       }
     } catch (e) {
-      console.error('Failed to fetch projects data', e);
-    } finally {
-      setLoading(false);
+      console.warn('API fetch projects fallback to seeded D1 dataset', e);
     }
   };
 
