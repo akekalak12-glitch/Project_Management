@@ -66,7 +66,9 @@ export const LocalStorageManager = {
     if (typeof window === 'undefined') return SEED_SPRINTS;
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.SPRINTS);
-      return saved ? JSON.parse(saved) : SEED_SPRINTS;
+      if (!saved) return SEED_SPRINTS;
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) && parsed.length >= SEED_SPRINTS.length ? parsed : SEED_SPRINTS;
     } catch {
       return SEED_SPRINTS;
     }
@@ -83,7 +85,9 @@ export const LocalStorageManager = {
     if (typeof window === 'undefined') return SEED_BACKLOGS;
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.BACKLOGS);
-      return saved ? JSON.parse(saved) : SEED_BACKLOGS;
+      if (!saved) return SEED_BACKLOGS;
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) && parsed.length >= SEED_BACKLOGS.length ? parsed : SEED_BACKLOGS;
     } catch {
       return SEED_BACKLOGS;
     }
