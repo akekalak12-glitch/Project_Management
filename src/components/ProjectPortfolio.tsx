@@ -115,14 +115,36 @@ export default function ProjectPortfolio() {
     fetchProjectsData();
   }, [currentUser?.id]);
 
+  const handleModalSectionChange = (secId: string) => {
+    setPrjSecId(secId);
+    const ownerInSec = projectOwners.find((u) => u.sectionId === secId || u.section?.id === secId);
+    if (ownerInSec) {
+      setPrjOwnerId(ownerInSec.id);
+    }
+  };
+
+  const handleModalOwnerChange = (ownerId: string) => {
+    setPrjOwnerId(ownerId);
+    const chosenOwner = projectOwners.find((u) => u.id === ownerId);
+    const ownerSecId = chosenOwner?.sectionId || chosenOwner?.section?.id;
+    if (ownerSecId) {
+      setPrjSecId(ownerSecId);
+    }
+  };
+
   const handleOpenAddProject = () => {
     setEditingPrjId(null);
     setPrjName('');
     setPrjCode(`PRJ-${Date.now().toString().slice(-4)}`);
     setPrjDesc('');
-    setPrjSecId(sections[0]?.id || '87eddf4e-7d77-4caf-acc5-9e4e1e2d5f22');
-    setPrjOwnerId(currentUser?.id || projectOwners[0]?.id || '8b1f19e0-959c-4c6f-9f4e-fcc4ee8466d4');
     setPrjStatus('PLANNING');
+
+    const initialSecId = sections[0]?.id || '87eddf4e-7d77-4caf-acc5-9e4e1e2d5f22';
+    setPrjSecId(initialSecId);
+
+    const ownerInSec = projectOwners.find((u) => u.sectionId === initialSecId || u.section?.id === initialSecId) || projectOwners[0];
+    setPrjOwnerId(ownerInSec?.id || currentUser?.id || '8b1f19e0-959c-4c6f-9f4e-fcc4ee8466d4');
+
     setShowPrjModal(false);
     setTimeout(() => setShowPrjModal(true), 10);
   };
@@ -446,8 +468,8 @@ export default function ProjectPortfolio() {
                 <label className="text-xs font-medium text-slate-300 block mb-1">ส่วนงานที่รับผิดชอบ</label>
                 <select
                   value={prjSecId}
-                  onChange={(e) => setPrjSecId(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => handleModalSectionChange(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                 >
                   {sections.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -461,8 +483,8 @@ export default function ProjectPortfolio() {
                 <label className="text-xs font-medium text-slate-300 block mb-1">ผอ.ส่วน / Project Owner</label>
                 <select
                   value={prjOwnerId}
-                  onChange={(e) => setPrjOwnerId(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => handleModalOwnerChange(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                 >
                   {projectOwners.map((u) => (
                     <option key={u.id} value={u.id}>
