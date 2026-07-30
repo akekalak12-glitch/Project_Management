@@ -112,6 +112,7 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
   const [taskDesc, setTaskDesc] = useState('');
   const [taskPriority, setTaskPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'>('MEDIUM');
   const [taskStatus, setTaskStatus] = useState<'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE'>('TODO');
+  const [taskDueDate, setTaskDueDate] = useState<string>('');
   
   // Multiple Assignees State
   const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>([]);
@@ -862,6 +863,21 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
                   <option value="DONE">Done</option>
                 </select>
               </div>
+            </div>
+
+            {/* Task Due Date Calendar Picker */}
+            <div>
+              <label className="text-xs font-medium text-slate-300 block mb-1 flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-blue-400" /> วันกำหนดส่งงาน (Due Date):
+              </label>
+              <input
+                type="date"
+                style={{ colorScheme: 'dark' }}
+                value={taskDueDate}
+                onClick={(e) => e.currentTarget.showPicker?.()}
+                onChange={(e) => setTaskDueDate(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              />
             </div>
 
             <div>

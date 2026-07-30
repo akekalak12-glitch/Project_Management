@@ -809,6 +809,38 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
 
             <div className="grid grid-cols-2 gap-3">
               <div>
+                <label className="text-xs font-medium text-slate-300 block mb-1 flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-purple-400" /> วันเริ่มต้น (Start Date)
+                </label>
+                <input
+                  type="date"
+                  required
+                  style={{ colorScheme: 'dark' }}
+                  value={sprintStartDate}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                  onChange={(e) => setSprintStartDate(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-slate-300 block mb-1 flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-purple-400" /> วันสิ้นสุด (End Date)
+                </label>
+                <input
+                  type="date"
+                  required
+                  style={{ colorScheme: 'dark' }}
+                  value={sprintEndDate}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                  onChange={(e) => setSprintEndDate(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
                 <label className="text-xs font-medium text-slate-300 block mb-1">รอบเวลา (Sprint Cadence)</label>
                 <select
                   value={sprintCadence}
@@ -831,30 +863,6 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
                   <option value="PLANNING">PLANNING</option>
                   <option value="COMPLETED">COMPLETED</option>
                 </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium text-slate-300 block mb-1">วันเริ่มต้น</label>
-                <input
-                  type="date"
-                  required
-                  value={sprintStartDate}
-                  onChange={(e) => setSprintStartDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-slate-300 block mb-1">วันสิ้นสุด</label>
-                <input
-                  type="date"
-                  required
-                  value={sprintEndDate}
-                  onChange={(e) => setSprintEndDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
               </div>
             </div>
 
