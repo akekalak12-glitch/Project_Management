@@ -171,121 +171,84 @@ async function main() {
     }
   }
 
-  // 6. Create Sprints, Backlog Items, and Tasks for ALL Projects
-  for (let idx = 0; idx < createdProjects.length; idx++) {
-    const proj = createdProjects[idx];
+  // 6. Create Sprints (Weekly & Monthly)
+  const mainProject = createdProjects[0];
 
-    // Weekly Sprint
-    const wSprint = await prisma.sprint.create({
-      data: {
-        projectId: proj.id,
-        name: `Sprint 31 (รายสัปดาห์) - ${proj.code}`,
-        goal: `เป้าหมายสัปดาห์ของ ${proj.name}`,
-        startDate: new Date('2026-08-01'),
-        endDate: new Date('2026-08-07'),
-        cadence: 'WEEKLY',
-        isActive: true,
-        status: 'ACTIVE',
-      },
-    });
+  // Weekly Sprint
+  const weeklySprint = await prisma.sprint.create({
+    data: {
+      projectId: mainProject.id,
+      name: 'Sprint 31 (รายสัปดาห์) - W1 ส.ค. 2026',
+      goal: 'ส่งมอบฟีเจอร์ UI/UX และซิงค์ข้อมูลประจำสัปดาห์',
+      startDate: new Date('2026-08-01'),
+      endDate: new Date('2026-08-07'),
+      cadence: 'WEEKLY',
+      isActive: true,
+      status: 'ACTIVE',
+    },
+  });
 
-    // Monthly Sprint
-    const mSprint = await prisma.sprint.create({
-      data: {
-        projectId: proj.id,
-        name: `Sprint Q3/August (รายเดือน) - ${proj.code}`,
-        goal: `เป้าหมายเดือนของ ${proj.name}`,
-        startDate: new Date('2026-08-01'),
-        endDate: new Date('2026-08-31'),
-        cadence: 'MONTHLY',
-        isActive: true,
-        status: 'ACTIVE',
-      },
-    });
+  // Monthly Sprint
+  const monthlySprint = await prisma.sprint.create({
+    data: {
+      projectId: mainProject.id,
+      name: 'Sprint Q3/August (รายเดือน) - ส.ค. 2026',
+      goal: 'เป้าหมายใหญ่ประจำเดือน: ปรับปรุงโครงสร้างระบบ Portal และเชื่อมต่อ API',
+      startDate: new Date('2026-08-01'),
+      endDate: new Date('2026-08-31'),
+      cadence: 'MONTHLY',
+      isActive: true,
+      status: 'ACTIVE',
+    },
+  });
 
-    // Backlog Items for Weekly Sprint
-    const b1 = await prisma.sprintBacklogItem.create({
-      data: {
-        sprintId: wSprint.id,
-        title: `วางโครงสร้างแผนงานและ UI ของ ${proj.name}`,
-        description: `รายละเอียดงานของ ${proj.name}`,
-        priority: 'HIGH',
-        status: 'SUCCESS',
-        startDate: new Date('2026-08-01'),
-        endDate: new Date('2026-08-07'),
-        assigneeId: staffList[idx % staffList.length].id,
-      },
-    });
+  // Tasks for Weekly Sprint
+  const weeklyTasks = [
+    { title: 'ออกแบบ Wireframe หน้า Sprint Board รายสัปดาห์', status: 'DONE', priority: 'HIGH', cat: 'DONE' },
+    { title: 'พัฒนา Filter ปุ่มสลับ Sprint รายสัปดาห์ / รายเดือน', status: 'IN_PROGRESS', priority: 'URGENT', cat: 'TODAY' },
+    { title: 'ทดสอบ Drag and Drop บน Weekly Sprint Board', status: 'TODO', priority: 'MEDIUM', cat: 'THIS_WEEK' },
+  ];
 
-    const b2 = await prisma.sprintBacklogItem.create({
-      data: {
-        sprintId: wSprint.id,
-        title: `พัฒนาระบบ Backend & API สำหรับ ${proj.code}`,
-        description: `เชื่อมโยงฐานข้อมูลและสร้าง API`,
-        priority: 'HIGH',
-        status: 'IN_PROGRESS',
-        startDate: new Date('2026-08-01'),
-        endDate: new Date('2026-08-07'),
-        assigneeId: staffList[(idx + 1) % staffList.length].id,
-      },
-    });
-
-    // Backlog Item for Monthly Sprint
-    const b3 = await prisma.sprintBacklogItem.create({
-      data: {
-        sprintId: mSprint.id,
-        title: `สอบทานมาตรฐานความปลอดภัยและส่งมอบ Milestone ${proj.code}`,
-        description: `ประเมินผลสัมฤทธิ์และทดสอบระบบ`,
-        priority: 'MEDIUM',
-        status: 'IN_PROGRESS',
-        startDate: new Date('2026-08-01'),
-        endDate: new Date('2026-08-31'),
-        assigneeId: staffList[(idx + 2) % staffList.length].id,
-      },
-    });
-
-    // Tasks linked to Backlog Items
+  for (let i = 0; i < weeklyTasks.length; i++) {
+    const t = weeklyTasks[i];
     await prisma.task.create({
       data: {
-        projectId: proj.id,
-        sprintId: wSprint.id,
-        backlogItemId: b1.id,
-        title: `[Weekly Task] ออกแบบ Wireframe และ User Flow ${proj.code}`,
-        status: 'DONE',
-        priority: 'HIGH',
-        assigneeId: staffList[idx % staffList.length].id,
-        reporterId: sm.id,
-      },
-    });
-
-    await prisma.task.create({
-      data: {
-        projectId: proj.id,
-        sprintId: wSprint.id,
-        backlogItemId: b2.id,
-        title: `[Weekly Task] พัฒนา API Controller และ Unit Test ${proj.code}`,
-        status: 'IN_PROGRESS',
-        priority: 'HIGH',
-        assigneeId: staffList[(idx + 1) % staffList.length].id,
-        reporterId: sm.id,
-      },
-    });
-
-    await prisma.task.create({
-      data: {
-        projectId: proj.id,
-        sprintId: mSprint.id,
-        backlogItemId: b3.id,
-        title: `[Monthly Task] สอบทานเอกสารและจัดทำคู่มือการใช้งาน ${proj.code}`,
-        status: 'IN_REVIEW',
-        priority: 'MEDIUM',
-        assigneeId: staffList[(idx + 2) % staffList.length].id,
+        sprintId: weeklySprint.id,
+        projectId: mainProject.id,
+        title: `[Weekly] ${t.title}`,
+        status: t.status,
+        priority: t.priority,
+        myTaskCategory: t.cat,
+        assigneeId: staffList[i % staffList.length].id,
         reporterId: sm.id,
       },
     });
   }
 
-  console.log('Seeding completed successfully with Weekly & Monthly Sprints and Backlog items for all projects!');
+  // Tasks for Monthly Sprint
+  const monthlyTasks = [
+    { title: 'สรุปภาพรวมแผนงานประจำเดือนสิงหาคม (Monthly Milestone)', status: 'DONE', priority: 'HIGH', cat: 'DONE' },
+    { title: 'ปรับปรุงประสิทธิภาพฐานข้อมูลรองรับ 20+ โครงการ', status: 'IN_PROGRESS', priority: 'URGENT', cat: 'TODAY' },
+    { title: 'ประเมินความเสี่ยงและทบทวน OKRs ประจำเดือน', status: 'IN_REVIEW', priority: 'MEDIUM', cat: 'THIS_WEEK' },
+  ];
+
+  for (let i = 0; i < monthlyTasks.length; i++) {
+    const t = monthlyTasks[i];
+    await prisma.task.create({
+      data: {
+        sprintId: monthlySprint.id,
+        projectId: mainProject.id,
+        title: `[Monthly] ${t.title}`,
+        status: t.status,
+        priority: t.priority,
+        myTaskCategory: t.cat,
+        assigneeId: staffList[(i + 3) % staffList.length].id,
+        reporterId: sm.id,
+      },
+    });
+  }
+
+  console.log('Seeding completed successfully with Weekly & Monthly Sprints!');
 }
 
 main()
