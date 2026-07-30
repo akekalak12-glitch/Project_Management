@@ -6,7 +6,8 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "pages:build": "node add-edge-runtime.js && npx @cloudflare/next-on-pages@1"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
