@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getPrisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
   try {
+    const prisma = await getPrisma();
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('projectId');
     const sectionId = searchParams.get('sectionId');
@@ -28,6 +29,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const prisma = await getPrisma();
     const body: any = await request.json();
     const target = Number(body.targetValue) || 100;
     const current = Number(body.currentValue) || 0;

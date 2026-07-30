@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getPrisma } from '@/lib/prisma';
 
 // GET all Sub-Jobs under a Backlog Item
 export async function GET(
@@ -7,6 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const prisma = await getPrisma();
     const { id: backlogItemId } = await params;
     const jobs = await prisma.task.findMany({
       where: { backlogItemId },
@@ -29,6 +30,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const prisma = await getPrisma();
     const { id: backlogItemId } = await params;
     const body: any = await request.json();
 

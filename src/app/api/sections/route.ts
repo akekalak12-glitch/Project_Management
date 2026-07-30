@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getPrisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
+    const prisma = await getPrisma();
     const sections = await prisma.section.findMany({
       include: {
         _count: {
@@ -19,6 +20,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const prisma = await getPrisma();
     const body: any = await request.json();
     const section = await prisma.section.create({
       data: {

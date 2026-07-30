@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getPrisma } from '@/lib/prisma';
 
 async function syncParentBacklogStatus(backlogItemId: string) {
+  const prisma = await getPrisma();
   const siblingJobs = await prisma.task.findMany({
     where: { backlogItemId },
   });
@@ -33,6 +34,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const prisma = await getPrisma();
     const { id: taskId } = await params;
     const body: any = await request.json();
 
@@ -105,6 +107,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const prisma = await getPrisma();
     const { id: taskId } = await params;
     const task = await prisma.task.findUnique({ where: { id: taskId } });
 
