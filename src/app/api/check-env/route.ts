@@ -1,21 +1,21 @@
 import { NextResponse } from 'next/server';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     let d1BindingFound = false;
     let d1Error = null;
 
     try {
-      const { getRequestContext } = await import('@cloudflare/next-on-pages');
-      const ctx = getRequestContext() as any;
-      d1BindingFound = !!(ctx && ctx.env && ctx.env.DB);
+      const { env } = getCloudflareContext();
+      d1BindingFound = !!(env && (env as unknown as { DB?: unknown }).DB);
     } catch (e: any) {
       d1Error = e.message;
     }
 
     return NextResponse.json({
       success: true,
-      runtime: 'edge',
+      runtime: 'workerd (opennext)',
       d1BindingFound,
       d1Error,
       timestamp: new Date().toISOString()

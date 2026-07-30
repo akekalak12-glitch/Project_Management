@@ -42,3 +42,10 @@ next-env.d.ts
 
 # prisma generated client (regenerated on install via postinstall)
 /src/generated/
+
+# OpenNext / Cloudflare Workers build output and local dev files
+/.open-next/
+/.wrangler/
+.dev.vars
+wrangler.toml.old
+*.removed
