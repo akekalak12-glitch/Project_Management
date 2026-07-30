@@ -1,22 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth, UserProfile } from '@/lib/auth-context';
+import { useAuth } from '@/lib/auth-context';
 import {
   Lock,
   Mail,
   KeyRound,
   Eye,
   EyeOff,
-  ShieldCheck,
   Building2,
-  ArrowRight,
-  UserCheck,
   AlertCircle,
 } from 'lucide-react';
 
 export default function LoginForm() {
-  const { usersList, login } = useAuth();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -39,25 +36,6 @@ export default function LoginForm() {
       setIsSubmitting(false);
     }
   };
-
-  const handleQuickLogin = async (user: UserProfile) => {
-    setErrorMsg(null);
-    setIsSubmitting(true);
-    try {
-      await login(user.email, user.password || '123456');
-    } catch (e) {
-      console.error('Quick login failed', e);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Find sample users for Quick Login Demo Buttons
-  const superAdminUser = usersList.find((u) => u.role?.key === 'SUPER_ADMIN') || usersList[0];
-  const advisorUser = usersList.find((u) => u.role?.key === 'ADVISOR') || usersList[1];
-  const pmUser = usersList.find((u) => u.role?.key === 'PROJECT_OWNER') || usersList[2];
-  const scrumUser = usersList.find((u) => u.role?.key === 'SCRUM_MASTER') || usersList[3];
-  const staffUser = usersList.find((u) => u.role?.key === 'STAFF') || usersList[4];
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden font-sans">
@@ -82,84 +60,6 @@ export default function LoginForm() {
             <p className="text-xs text-slate-400 leading-relaxed">
               เข้าสู่ระบบเพื่อปฏิบัติงานตามบทบาทหน้าที่ และการเข้าถึงหน้าเมนูตาม **สิทธิ์การมองเห็นและการแก้ไข (Role-Based Access Control)** ที่ได้รับอนุญาต
             </p>
-          </div>
-
-          {/* Quick Demo Login Preset Buttons */}
-          <div className="space-y-3 pt-4 border-t border-slate-800">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-              ⚡ ทางลัดเข้าสู่ระบบทดสอบตามสิทธิ์บทบาท:
-            </span>
-
-            <div className="space-y-2">
-              {superAdminUser && (
-                <button
-                  onClick={() => handleQuickLogin(superAdminUser)}
-                  className="w-full p-2.5 bg-slate-950 hover:bg-slate-800/80 border border-purple-500/30 hover:border-purple-500/60 rounded-xl text-left transition-all flex items-center justify-between group cursor-pointer"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <img
-                      src={superAdminUser.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin'}
-                      alt="Avatar"
-                      className="w-7 h-7 rounded-full border border-purple-500/40"
-                    />
-                    <div>
-                      <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                        👑 {superAdminUser.name}
-                        <span className="text-[9px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded font-extrabold">SUPER_ADMIN</span>
-                      </h4>
-                      <p className="text-[10px] text-slate-400">สิทธิ์เต็ม: แดชบอร์ด, โครงการ, Sprint, Kanban, Master Data, บริหารสิทธิ์</p>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-purple-400 group-hover:translate-x-1 transition-transform shrink-0" />
-                </button>
-              )}
-
-              {pmUser && (
-                <button
-                  onClick={() => handleQuickLogin(pmUser)}
-                  className="w-full p-2.5 bg-slate-950 hover:bg-slate-800/80 border border-blue-500/30 hover:border-blue-500/60 rounded-xl text-left transition-all flex items-center justify-between group cursor-pointer"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <img
-                      src={pmUser.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=PM'}
-                      alt="Avatar"
-                      className="w-7 h-7 rounded-full border border-blue-500/40"
-                    />
-                    <div>
-                      <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                        💼 {pmUser.name}
-                        <span className="text-[9px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded font-extrabold">PROJECT_OWNER</span>
-                      </h4>
-                      <p className="text-[10px] text-slate-400">สิทธิ์: รายการโครงการ, Sprint Board, Kanban Board</p>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-blue-400 group-hover:translate-x-1 transition-transform shrink-0" />
-                </button>
-              )}
-
-              {staffUser && (
-                <button
-                  onClick={() => handleQuickLogin(staffUser)}
-                  className="w-full p-2.5 bg-slate-950 hover:bg-slate-800/80 border border-emerald-500/30 hover:border-emerald-500/60 rounded-xl text-left transition-all flex items-center justify-between group cursor-pointer"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <img
-                      src={staffUser.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Staff'}
-                      alt="Avatar"
-                      className="w-7 h-7 rounded-full border border-emerald-500/40"
-                    />
-                    <div>
-                      <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                        👷 {staffUser.name}
-                        <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-extrabold">STAFF</span>
-                      </h4>
-                      <p className="text-[10px] text-slate-400">สิทธิ์: ปฏิบัติงานบน Kanban Board เฉพาะงานที่ได้รับมอบหมาย</p>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-emerald-400 group-hover:translate-x-1 transition-transform shrink-0" />
-                </button>
-              )}
-            </div>
           </div>
         </div>
 
@@ -224,12 +124,6 @@ export default function LoginForm() {
               <span>{isSubmitting ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ (Log In)'}</span>
             </button>
           </form>
-
-          <div className="pt-2 text-center border-t border-slate-800/80">
-            <span className="text-[11px] text-slate-500">
-              รหัสผ่านเริ่มต้นของพนักงานทุกคนในระบบคือ <strong className="text-blue-400 font-mono">123456</strong>
-            </span>
-          </div>
         </div>
       </div>
     </div>

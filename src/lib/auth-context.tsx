@@ -114,34 +114,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Intentionally does NOT restore a previous session from localStorage —
+  // the app must always land on the login screen when it's opened, rather
+  // than silently signing the user back in as whoever last logged in on
+  // that browser.
   const loadInitialState = async () => {
-    try {
-      const savedUserId = typeof window !== 'undefined' ? localStorage.getItem('active_user_id') : null;
-      if (savedUserId) {
-        try {
-          const res = await fetch(`/api/auth/me?userId=${savedUserId}`);
-          if (res.ok) {
-            const data: any = await res.json();
-            if (data.success && data.user) {
-              setCurrentUser(data.user);
-              setIsLoggedIn(true);
-              return;
-            }
-          }
-          throw new Error('API returned no user');
-        } catch (apiError) {
-          console.warn('API auth/me unreachable, falling back to local cache', apiError);
-          const currentList = LocalStorageManager.getUsers();
-          const found = currentList.find((u: UserProfile) => u.id === savedUserId);
-          if (found) {
-            setCurrentUser(found);
-            setIsLoggedIn(true);
-          }
-        }
-      }
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -159,6 +137,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (matched) {
       // Pull the fully up-to-date record (role/permissions may have changed
       // since usersList was last fetched) before establishing the session.
+      // The session is intentionally kept in memory only (no localStorage
+      // persistence) so the app always requires a fresh login on open.
       try {
         const res = await fetch(`/api/auth/me?userId=${matched.id}`);
         if (res.ok) {
@@ -166,9 +146,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (data.success && data.user) {
             setCurrentUser(data.user);
             setIsLoggedIn(true);
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('active_user_id', data.user.id);
-            }
             return true;
           }
         }
@@ -178,9 +155,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setCurrentUser(matched);
       setIsLoggedIn(true);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('active_user_id', matched.id);
-      }
       return true;
     }
 
@@ -188,9 +162,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (email.toLowerCase().trim() === DEFAULT_SUPER_ADMIN_USER.email.toLowerCase()) {
       setCurrentUser(DEFAULT_SUPER_ADMIN_USER);
       setIsLoggedIn(true);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('active_user_id', DEFAULT_SUPER_ADMIN_USER.id);
-      }
       return true;
     }
 
@@ -200,9 +171,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setIsLoggedIn(false);
     setCurrentUser(null);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('active_user_id');
-    }
   };
 
   const switchUserById = async (userId: string) => {
@@ -213,9 +181,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (data.success && data.user) {
           setCurrentUser(data.user);
           setIsLoggedIn(true);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('active_user_id', data.user.id);
-          }
           return;
         }
       }
@@ -227,9 +192,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (matched) {
         setCurrentUser(matched);
         setIsLoggedIn(true);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('active_user_id', matched.id);
-        }
       }
     }
   };
