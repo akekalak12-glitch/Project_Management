@@ -75,6 +75,7 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
   const [selectedCadence, setSelectedCadence] = useState<'ALL' | 'WEEKLY' | 'MONTHLY'>('ALL');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('ALL');
   const [backlogItems, setBacklogItems] = useState<BacklogItem[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Drill-down expanded Sprint rows state
@@ -110,6 +111,7 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
       const localPrjs = LocalStorageManager.getProjects();
       if (localPrjs && localPrjs.length > 0) setProjects(localPrjs);
       setBacklogItems(LocalStorageManager.getBacklogs());
+      setTasks(LocalStorageManager.getTasks());
     };
 
     syncData();
@@ -118,7 +120,7 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
       try {
         const res = await fetch('/api/projects');
         if (res.ok) {
-          const data = await res.json();
+          const data: any = await res.json();
           if (data.success && Array.isArray(data.data) && data.data.length > 0) {
             setProjects(data.data);
             LocalStorageManager.setProjects(data.data);
@@ -583,6 +585,10 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
               const sprintBacklogs = backlogItems.filter((b) => b.sprintId === s.id);
               const totalBacklogCount = sprintBacklogs.length;
               const successCount = sprintBacklogs.filter((b) => b.status === 'SUCCESS').length;
+              // Task-based counts for this sprint
+              const sprintBacklogIds = sprintBacklogs.map((b) => b.id);
+              const sprintTasks = tasks.filter((t: any) => sprintBacklogIds.includes(t.backlogItemId));
+              const doneSprintTasks = sprintTasks.filter((t: any) => t.status === 'DONE');
               const isExpanded = expandedSprintIds.includes(s.id);
               const sprintSlots = calculateSprintSlots(s);
 
@@ -629,9 +635,11 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
 
                     <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
                       <div className="text-right">
-                        <span className="text-xs text-slate-400 block">ความคืบหน้า Backlog</span>
+                        <span className="text-xs text-slate-400 block">ความคืบหน้า (Tasks)</span>
                         <span className="text-sm font-extrabold text-emerald-400">
-                          {successCount}/{totalBacklogCount} รายการสำเร็จ
+                          {sprintTasks.length > 0
+                            ? `${doneSprintTasks.length}/${sprintTasks.length} Tasks สำเร็จ`
+                            : `${successCount}/${totalBacklogCount} Backlog สำเร็จ`}
                         </span>
                       </div>
 
@@ -697,11 +705,22 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
 
                               {/* Backlog Item Cards in this Column */}
                               <div className="space-y-3 flex-1 overflow-y-auto max-h-[500px] pr-0.5">
-                                {slotBacklogs.map((b) => (
+                                {slotBacklogs.map((b) => {
+                                  // Derive effective status from tasks (real-time, not stale b.status)
+                                  const bTasksAll = tasks.filter((t: any) => t.backlogItemId === b.id);
+                                  let effectiveStatus = b.status;
+                                  if (bTasksAll.length > 0) {
+                                    const allDone = bTasksAll.every((t: any) => t.status === 'DONE');
+                                    const anyInProgress = bTasksAll.some((t: any) => t.status === 'IN_PROGRESS' || t.status === 'IN_REVIEW');
+                                    if (allDone) effectiveStatus = 'SUCCESS';
+                                    else if (anyInProgress) effectiveStatus = 'IN_PROGRESS';
+                                    else effectiveStatus = 'PLANNED';
+                                  }
+                                  return (
                                   <div
                                     key={b.id}
                                     className={`bg-slate-950 border rounded-xl p-3.5 space-y-2.5 shadow-sm transition-all hover:border-purple-500/40 ${
-                                      b.status === 'SUCCESS'
+                                      effectiveStatus === 'SUCCESS'
                                         ? 'border-emerald-500/40 bg-emerald-950/10'
                                         : 'border-slate-800'
                                     }`}
@@ -709,16 +728,16 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
                                     <div className="flex items-center justify-between">
                                       <span
                                         className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
-                                          b.status === 'SUCCESS'
+                                          effectiveStatus === 'SUCCESS'
                                             ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                            : b.status === 'IN_PROGRESS'
+                                            : effectiveStatus === 'IN_PROGRESS'
                                             ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                                            : b.status === 'FLEXIBLE_REVISED'
+                                            : effectiveStatus === 'FLEXIBLE_REVISED'
                                             ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                                             : 'bg-slate-800 text-slate-400 border border-slate-700'
                                         }`}
                                       >
-                                        {b.status}
+                                        {effectiveStatus}
                                       </span>
 
                                       <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
@@ -733,6 +752,25 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
                                         {b.description}
                                       </p>
                                     )}
+
+                                    {/* Task Progress Mini Bar */}
+                                    {(() => {
+                                      const bTasks = tasks.filter((t: any) => t.backlogItemId === b.id);
+                                      const doneBTasks = bTasks.filter((t: any) => t.status === 'DONE');
+                                      if (bTasks.length === 0) return null;
+                                      const bProgress = Math.round((doneBTasks.length / bTasks.length) * 100);
+                                      return (
+                                        <div className="space-y-0.5">
+                                          <div className="flex items-center justify-between text-[9px]">
+                                            <span className="text-slate-500">Tasks:</span>
+                                            <span className="text-emerald-400 font-bold font-mono">{doneBTasks.length}/{bTasks.length} ({bProgress}%)</span>
+                                          </div>
+                                          <div className="w-full bg-slate-900 h-1 rounded-full overflow-hidden">
+                                            <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${bProgress}%` }} />
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
 
                                     {/* Action buttons on card */}
                                     <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px]">
@@ -758,7 +796,8 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
                                       </div>
                                     </div>
                                   </div>
-                                ))}
+                                  );
+                                })}
 
                                 {slotBacklogs.length === 0 && (
                                   <div className="py-8 text-center text-slate-600 text-xs italic">

@@ -65,7 +65,7 @@ export default function ProjectReportModal({
         fetch(`/api/projects/${projectId}/members`),
         fetch(`/api/tasks?projectId=${projectId}`),
       ]);
-      const [ds, dm, dt] = await Promise.all([
+      const [ds, dm, dt]: [any, any, any] = await Promise.all([
         resSprints.json(), resMembers.json(), resTasks.json(),
       ]);
 
@@ -102,10 +102,10 @@ export default function ProjectReportModal({
   // ── Computed values ──────────────────────────────────────────────────────────
   const totalBacklogs   = backlogs.length;
   const successBacklogs = backlogs.filter((b) => b.status === 'SUCCESS').length;
-  const progress        = totalBacklogs > 0 ? Math.round((successBacklogs / totalBacklogs) * 100) : 0;
   const totalTasks      = tasks.length;
   const doneTasks       = tasks.filter((t) => t.status === 'DONE').length;
-  const taskProgress    = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  const progress        = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : (totalBacklogs > 0 ? Math.round((successBacklogs / totalBacklogs) * 100) : 0);
+  const taskProgress    = progress;
 
   const today = new Date().toLocaleDateString('th-TH', {
     year: 'numeric', month: 'long', day: 'numeric', weekday: 'long',

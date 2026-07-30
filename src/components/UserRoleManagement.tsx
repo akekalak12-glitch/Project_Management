@@ -65,25 +65,25 @@ export default function UserRoleManagement() {
   const [userRoleId, setUserRoleId] = useState('');
   const [userSecId, setUserSecId] = useState('');
 
-  useEffect(() => {
-    const syncData = () => {
-      setUsers(LocalStorageManager.getUsers());
-      setSections(LocalStorageManager.getSections());
-      setRoles(SEED_ROLES);
-      if (!selectedRoleId && SEED_ROLES.length > 0) {
-        setSelectedRoleId(SEED_ROLES[0].id);
-        initMatrixForRole(SEED_ROLES[0]);
-      }
-      setLoading(false);
-    };
+  const fetchData = () => {
+    setUsers(LocalStorageManager.getUsers());
+    setSections(LocalStorageManager.getSections());
+    setRoles(SEED_ROLES);
+    if (!selectedRoleId && SEED_ROLES.length > 0) {
+      setSelectedRoleId(SEED_ROLES[0].id);
+      initMatrixForRole(SEED_ROLES[0]);
+    }
+    setLoading(false);
+  };
 
-    syncData();
+  useEffect(() => {
+    fetchData();
     if (typeof window !== 'undefined') {
-      window.addEventListener('app_data_synced', syncData);
+      window.addEventListener('app_data_synced', fetchData);
     }
     return () => {
       if (typeof window !== 'undefined') {
-        window.removeEventListener('app_data_synced', syncData);
+        window.removeEventListener('app_data_synced', fetchData);
       }
     };
   }, []);
@@ -205,8 +205,23 @@ export default function UserRoleManagement() {
       });
       const data: any = await res.json();
       if (data.success) {
+        // Also update LocalStorage so password displays correctly immediately
+        const currentUsers = LocalStorageManager.getUsers();
+        if (editingUserId) {
+          const updatedUsers = currentUsers.map((u: any) =>
+            u.id === editingUserId
+              ? { ...u, name: userName, email: userEmail, password: userPassword, roleId: userRoleId, sectionId: userSecId || u.sectionId }
+              : u
+          );
+          LocalStorageManager.setUsers(updatedUsers);
+        } else if (data.data) {
+          LocalStorageManager.setUsers([...currentUsers, { ...data.data, password: userPassword }]);
+        }
         setShowUserModal(false);
         fetchData();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('app_data_synced'));
+        }
       } else {
         alert(`ไม่สามารถบันทึกข้อมูลผู้ใช้ได้: ${data.error}`);
       }

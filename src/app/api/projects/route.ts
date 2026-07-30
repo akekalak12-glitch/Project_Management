@@ -50,10 +50,10 @@ export async function GET(request: Request) {
     });
 
     // Compute progress % dynamically based on SUCCESS Sprint Backlog Items count
-    const data = projects.map((p) => {
-      const allBacklogs = p.sprints.flatMap((s) => s.backlogItems || []);
+    const data = projects.map((p: any) => {
+      const allBacklogs = p.sprints.flatMap((s: any) => s.backlogItems || []);
       const totalBacklogs = allBacklogs.length;
-      const successBacklogs = allBacklogs.filter((b) => b.status === 'SUCCESS').length;
+      const successBacklogs = allBacklogs.filter((b: any) => b.status === 'SUCCESS').length;
       const progress = totalBacklogs > 0 ? Math.round((successBacklogs / totalBacklogs) * 100) : 0;
 
       return {

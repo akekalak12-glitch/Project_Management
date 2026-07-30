@@ -7,7 +7,7 @@ export async function GET(request: Request) {
 
     try {
       const { getRequestContext } = await import('@cloudflare/next-on-pages');
-      const ctx = getRequestContext();
+      const ctx = getRequestContext() as any;
       d1BindingFound = !!(ctx && ctx.env && ctx.env.DB);
     } catch (e: any) {
       d1Error = e.message;

@@ -189,11 +189,28 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
       prevTasks.map((t) => (t.id === taskId ? { ...t, status: newColumnStatus } : t))
     );
 
-    // Sync parent backlog item status
+    // Sync parent backlog item status based on ALL tasks under it
     if (targetTask?.backlogItemId) {
-      const updatedBacklogStatus = newColumnStatus === 'DONE' ? 'SUCCESS' : (newColumnStatus === 'IN_PROGRESS' || newColumnStatus === 'IN_REVIEW' ? 'IN_PROGRESS' : 'PLANNED');
       setBacklogs((prevBacklogs) => {
-        const nextBacklogs = prevBacklogs.map((b) => (b.id === targetTask.backlogItemId ? { ...b, status: updatedBacklogStatus } : b));
+        // Get latest task list with the newly updated task included
+        const updatedTasks = tasks.map((t) => t.id === taskId ? { ...t, status: newColumnStatus } : t);
+        const siblingTasks = updatedTasks.filter((t) => t.backlogItemId === targetTask.backlogItemId);
+
+        let newBacklogStatus: string = 'PLANNED';
+        if (siblingTasks.length > 0) {
+          const allDone = siblingTasks.every((t) => t.status === 'DONE');
+          const anyInProgress = siblingTasks.some((t) => t.status === 'IN_PROGRESS' || t.status === 'IN_REVIEW');
+          if (allDone) newBacklogStatus = 'SUCCESS';
+          else if (anyInProgress) newBacklogStatus = 'IN_PROGRESS';
+          else newBacklogStatus = 'PLANNED';
+        } else {
+          // Fallback if no sibling tasks found
+          newBacklogStatus = newColumnStatus === 'DONE' ? 'SUCCESS' : (newColumnStatus === 'IN_PROGRESS' || newColumnStatus === 'IN_REVIEW' ? 'IN_PROGRESS' : 'PLANNED');
+        }
+
+        const nextBacklogs = prevBacklogs.map((b) =>
+          b.id === targetTask.backlogItemId ? { ...b, status: newBacklogStatus } : b
+        );
         LocalStorageManager.setBacklogs(nextBacklogs);
         return nextBacklogs;
       });
@@ -361,11 +378,41 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
     };
 
     // Optimistic UI state update with LocalStorage sync
+    let latestTasks: TaskItem[] = [];
     if (editingTaskId) {
-      updateTasksState((prev) => prev.map((t) => (t.id === editingTaskId ? newTaskObj : t)));
+      updateTasksState((prev) => {
+        const next = prev.map((t) => (t.id === editingTaskId ? newTaskObj : t));
+        latestTasks = next;
+        return next;
+      });
     } else {
-      updateTasksState((prev) => [newTaskObj, ...prev]);
+      updateTasksState((prev) => {
+        const next = [newTaskObj, ...prev];
+        latestTasks = next;
+        return next;
+      });
     }
+
+    // Recalculate parent Backlog status from all tasks under that backlog
+    if (newTaskObj.backlogItemId) {
+      setBacklogs((prevBacklogs) => {
+        const allTasksForBacklog = latestTasks.filter((t) => t.backlogItemId === newTaskObj.backlogItemId);
+        let newBacklogStatus = 'PLANNED';
+        if (allTasksForBacklog.length > 0) {
+          const allDone = allTasksForBacklog.every((t) => t.status === 'DONE');
+          const anyInProgress = allTasksForBacklog.some((t) => t.status === 'IN_PROGRESS' || t.status === 'IN_REVIEW');
+          if (allDone) newBacklogStatus = 'SUCCESS';
+          else if (anyInProgress) newBacklogStatus = 'IN_PROGRESS';
+          else newBacklogStatus = 'PLANNED';
+        }
+        const nextBacklogs = prevBacklogs.map((b) =>
+          b.id === newTaskObj.backlogItemId ? { ...b, status: newBacklogStatus } : b
+        );
+        LocalStorageManager.setBacklogs(nextBacklogs);
+        return nextBacklogs;
+      });
+    }
+
     setShowTaskModal(false);
 
     try {
@@ -622,7 +669,7 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
                   assigneeId: b.assigneeId || b.assignee?.id || proj.ownerId,
                   assignee: b.assignee || proj.owner,
                   project: { name: proj.name, code: proj.code },
-                  backlogItem: { title: b.title },
+                  backlogItem: { id: b.id, title: b.title, status: b.status },
                 };
               });
 

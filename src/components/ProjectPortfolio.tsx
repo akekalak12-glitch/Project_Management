@@ -41,6 +41,7 @@ export default function ProjectPortfolio() {
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [sections, setSections] = useState<any[]>([]);
   const [projectOwners, setProjectOwners] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [selectedSection, setSelectedSection] = useState('ALL');
   const [loading, setLoading] = useState(false);
@@ -50,6 +51,7 @@ export default function ProjectPortfolio() {
       setProjects(LocalStorageManager.getProjects());
       setSections(LocalStorageManager.getSections());
       setProjectOwners(LocalStorageManager.getUsers());
+      setTasks(LocalStorageManager.getTasks());
     };
 
     syncData();
@@ -359,23 +361,30 @@ export default function ProjectPortfolio() {
                   )}
                 </div>
 
-                {/* Dynamic Backlog Success Progress % */}
-                <div className="pt-2.5 border-t border-slate-800/80 space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-slate-400 font-medium flex items-center gap-1">
-                      🎯 ความก้าวหน้า Backlog (Success Rate):
-                    </span>
-                    <span className="font-extrabold text-emerald-400 font-mono">
-                      {(p as any).progress || 0}% ({ (p as any).successBacklogs || 0 }/{(p as any).totalBacklogs || 0} Success)
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                    <div
-                      className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min((p as any).progress || 0, 100)}%` }}
-                    />
-                  </div>
-                </div>
+                {/* Dynamic Task-based Progress % */}
+                {(() => {
+                  const pTasks = tasks.filter((t: any) => t.projectId === p.id);
+                  const donePTasks = pTasks.filter((t: any) => t.status === 'DONE');
+                  const taskProgress = pTasks.length > 0 ? Math.round((donePTasks.length / pTasks.length) * 100) : ((p as any).progress || 0);
+                  return (
+                    <div className="pt-2.5 border-t border-slate-800/80 space-y-1">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-400 font-medium flex items-center gap-1">
+                          🎯 ความก้าวหน้า (Task):
+                        </span>
+                        <span className="font-extrabold text-emerald-400 font-mono">
+                          {taskProgress}% ({donePTasks.length}/{pTasks.length} Tasks สำเร็จ)
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                        <div
+                          className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(taskProgress, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           ))}

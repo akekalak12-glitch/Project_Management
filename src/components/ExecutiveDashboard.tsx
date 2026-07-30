@@ -35,11 +35,13 @@ export default function ExecutiveDashboard() {
   const { currentUser, isExecutive, isAdvisor } = useAuth();
   const [okrs, setOkrs] = useState<OKRItem[]>([]);
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [allTasks, setAllTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const syncData = () => {
       setProjects(LocalStorageManager.getProjects());
+      setAllTasks(LocalStorageManager.getTasks());
     };
 
     syncData();
@@ -97,6 +99,20 @@ export default function ExecutiveDashboard() {
     : 0;
   const atRiskOkrs = accessibleOkrs.filter((o) => o.status === 'AT_RISK' || o.status === 'BEHIND').length;
 
+  // Task & Sprint metrics
+  const accessibleProjectIds2 = new Set(accessibleProjects.map((p) => p.id));
+  const accessibleTasks = allTasks.filter((t: any) => accessibleProjectIds2.has(t.projectId));
+  const totalTasks = accessibleTasks.length;
+  const doneTasks = accessibleTasks.filter((t: any) => t.status === 'DONE').length;
+  const overallTaskProgress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  const allSprints = LocalStorageManager.getSprints();
+  const accessibleSprints = allSprints.filter((s: any) => accessibleProjectIds2.has(s.projectId));
+  const totalSprints = accessibleSprints.length;
+  // People without assigned tasks
+  const allUsers = LocalStorageManager.getUsers();
+  const assignedUserIds = new Set(accessibleTasks.filter((t: any) => t.assigneeId).map((t: any) => t.assigneeId));
+  const unassignedPeople = allUsers.filter((u: any) => !assignedUserIds.has(u.id)).length;
+
   if (loading) {
     return (
       <div className="p-8 text-center text-slate-400">
@@ -131,53 +147,78 @@ export default function ExecutiveDashboard() {
       </div>
 
       {/* Metric Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-4 shadow-sm">
-          <div className="p-3.5 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20">
-            <FolderKanban className="w-6 h-6" />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {/* Card 1: Total Projects */}
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-3 shadow-sm">
+          <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20 shrink-0">
+            <FolderKanban className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs text-slate-400 font-medium">โครงการในสิทธิ์ของคุณ</p>
-            <h3 className="text-2xl font-bold text-white mt-0.5">{totalProjects} โครงการ</h3>
-            <p className="text-[11px] text-emerald-400 mt-1">กำลังดำเนินการ {inProgressProjects} โครงการ</p>
+            <p className="text-[11px] text-slate-400 font-medium leading-tight">จำนวนโครงการทั้งหมด</p>
+            <h3 className="text-2xl font-bold text-white mt-0.5">{totalProjects}</h3>
+            <p className="text-[10px] text-emerald-400 mt-0.5">ดำเนินการ {inProgressProjects} โครงการ</p>
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-4 shadow-sm">
-          <div className="p-3.5 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
-            <TrendingUp className="w-6 h-6" />
+        {/* Card 2: Overall Task Progress % */}
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-3 shadow-sm">
+          <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20 shrink-0">
+            <TrendingUp className="w-5 h-5" />
           </div>
-          <div>
-            <p className="text-xs text-slate-400 font-medium">ความก้าวหน้าเฉลี่ย OKRs</p>
-            <h3 className="text-2xl font-bold text-white mt-0.5">{avgOkrProgress}%</h3>
-            <div className="w-32 bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
-              <div
-                className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                style={{ width: `${avgOkrProgress}%` }}
-              />
+          <div className="min-w-0">
+            <p className="text-[11px] text-slate-400 font-medium leading-tight">เปอร์เซ็นต์ความก้าวหน้ารวม</p>
+            <h3 className="text-2xl font-bold text-white mt-0.5">{overallTaskProgress}%</h3>
+            <div className="w-full bg-slate-800 h-1 rounded-full mt-1.5 overflow-hidden">
+              <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${overallTaskProgress}%` }} />
             </div>
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-4 shadow-sm">
-          <div className="p-3.5 bg-purple-500/10 text-purple-400 rounded-xl border border-purple-500/20">
-            <Target className="w-6 h-6" />
+        {/* Card 3: Total Tasks */}
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-3 shadow-sm">
+          <div className="p-3 bg-purple-500/10 text-purple-400 rounded-xl border border-purple-500/20 shrink-0">
+            <Target className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs text-slate-400 font-medium">ตัวชี้วัด OKRs ทั้งหมด</p>
-            <h3 className="text-2xl font-bold text-white mt-0.5">{accessibleOkrs.length} เป้าหมาย</h3>
-            <p className="text-[11px] text-slate-400 mt-1">แยกตามยุทธศาสตร์โครงการ</p>
+            <p className="text-[11px] text-slate-400 font-medium leading-tight">จำนวน Task ทั้งหมด</p>
+            <h3 className="text-2xl font-bold text-white mt-0.5">{totalTasks}</h3>
+            <p className="text-[10px] text-slate-400 mt-0.5">ทุก Backlog / Sprint</p>
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-4 shadow-sm">
-          <div className="p-3.5 bg-rose-500/10 text-rose-400 rounded-xl border border-rose-500/20">
-            <AlertTriangle className="w-6 h-6" />
+        {/* Card 4: Done Tasks */}
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-3 shadow-sm">
+          <div className="p-3 bg-teal-500/10 text-teal-400 rounded-xl border border-teal-500/20 shrink-0">
+            <CheckCircle2 className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs text-slate-400 font-medium">OKRs ที่ต้องเฝ้าระวัง</p>
-            <h3 className="text-2xl font-bold text-white mt-0.5">{atRiskOkrs} เป้าหมาย</h3>
-            <p className="text-[11px] text-rose-400 mt-1">สถานะล่าช้า / มีความเสี่ยง</p>
+            <p className="text-[11px] text-slate-400 font-medium leading-tight">Task ที่เสร็จแล้ว</p>
+            <h3 className="text-2xl font-bold text-white mt-0.5">{doneTasks}</h3>
+            <p className="text-[10px] text-teal-400 mt-0.5">จาก {totalTasks} Task ทั้งหมด</p>
+          </div>
+        </div>
+
+        {/* Card 5: Total Sprints */}
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-3 shadow-sm">
+          <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20 shrink-0">
+            <BarChart3 className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-[11px] text-slate-400 font-medium leading-tight">จำนวน Sprint ทั้งหมด</p>
+            <h3 className="text-2xl font-bold text-white mt-0.5">{totalSprints}</h3>
+            <p className="text-[10px] text-slate-400 mt-0.5">ในทุกโครงการ</p>
+          </div>
+        </div>
+
+        {/* Card 6: Unassigned People */}
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-3 shadow-sm">
+          <div className="p-3 bg-rose-500/10 text-rose-400 rounded-xl border border-rose-500/20 shrink-0">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-[11px] text-slate-400 font-medium leading-tight">คนที่ไม่มี Task</p>
+            <h3 className="text-2xl font-bold text-white mt-0.5">{unassignedPeople}</h3>
+            <p className="text-[10px] text-rose-400 mt-0.5">ยังไม่ได้รับมอบหมาย</p>
           </div>
         </div>
       </div>
@@ -187,7 +228,7 @@ export default function ExecutiveDashboard() {
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <FolderKanban className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-base font-bold text-white">ตารางสรุปความก้าวหน้าโครงการ (คำนวณจาก Backlog ที่ Success)</h2>
+            <h2 className="text-base font-bold text-white">ตารางสรุปความก้าวหน้าโครงการ (คำนวณจาก Tasks ที่สำเร็จ)</h2>
           </div>
           <span className="text-xs text-slate-400">({accessibleProjects.length} โครงการ)</span>
         </div>
@@ -198,53 +239,62 @@ export default function ExecutiveDashboard() {
               <tr>
                 <th className="py-3 px-4">ชื่อโครงการ</th>
                 <th className="py-3 px-4">ส่วนงาน / ผู้รับผิดชอบ</th>
-                <th className="py-3 px-4 text-center">จำนวน Backlog (Success / ทั้งหมด)</th>
+                <th className="py-3 px-4 text-center">Tasks (สำเร็จ / ทั้งหมด)</th>
                 <th className="py-3 px-4">ความก้าวหน้า (%)</th>
                 <th className="py-3 px-4 text-right">สถานะ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {accessibleProjects.map((prj: any) => (
-                <tr key={prj.id} className="hover:bg-slate-800/40 transition-all">
-                  <td className="py-3.5 px-4 font-bold text-white">
-                    <span>{prj.name}</span>
-                    <span className="ml-2 text-[10px] font-mono text-blue-400 bg-slate-800 px-2 py-0.5 rounded">
-                      {prj.code}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="text-slate-300">{prj.section?.name}</span>
-                    <p className="text-[10px] text-slate-400">ผอ.ส่วน: {prj.owner?.name}</p>
-                  </td>
-                  <td className="py-3.5 px-4 text-center font-mono font-bold text-emerald-400">
-                    {prj.successBacklogs || 0} / {prj.totalBacklogs || 0} รายการ
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-28 bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                        <div
-                          className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                          style={{ width: `${Math.min(prj.progress || 0, 100)}%` }}
-                        />
+                {accessibleProjects.map((prj: any) => {
+                  const prjTasks = allTasks.filter((t: any) => t.projectId === prj.id);
+                  const donePrjTasks = prjTasks.filter((t: any) => t.status === 'DONE');
+                  const taskProgress = prjTasks.length > 0
+                    ? Math.round((donePrjTasks.length / prjTasks.length) * 100)
+                    : (prj.progress || 0);
+                  return (
+                  <tr key={prj.id} className="hover:bg-slate-800/40 transition-all">
+                    <td className="py-3.5 px-4 font-bold text-white">
+                      <span>{prj.name}</span>
+                      <span className="ml-2 text-[10px] font-mono text-blue-400 bg-slate-800 px-2 py-0.5 rounded">
+                        {prj.code}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="text-slate-300">{prj.section?.name}</span>
+                      <p className="text-[10px] text-slate-400">ผอ.ส่วน: {prj.owner?.name}</p>
+                    </td>
+                    <td className="py-3.5 px-4 text-center font-mono font-bold text-emerald-400">
+                      {prjTasks.length > 0
+                        ? `${donePrjTasks.length} / ${prjTasks.length} Tasks`
+                        : `${prj.successBacklogs || 0} / ${prj.totalBacklogs || 0} Backlog`}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-28 bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                          <div
+                            className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min(taskProgress, 100)}%` }}
+                          />
+                        </div>
+                        <span className="font-extrabold text-white text-xs">{taskProgress}%</span>
                       </div>
-                      <span className="font-extrabold text-white text-xs">{prj.progress || 0}%</span>
-                    </div>
-                  </td>
+                    </td>
                   <td className="py-3.5 px-4 text-right">
                     <span
                       className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded ${
-                        prj.progress >= 100
+                        taskProgress >= 100
                           ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : prj.progress > 0
+                          : taskProgress > 0
                           ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                           : 'bg-slate-800 text-slate-400 border border-slate-700'
                       }`}
                     >
-                      {prj.progress >= 100 ? 'SUCCESS' : prj.progress > 0 ? 'IN_PROGRESS' : 'PLANNED'}
+                      {taskProgress >= 100 ? 'SUCCESS' : taskProgress > 0 ? 'IN_PROGRESS' : 'PLANNED'}
                     </span>
                   </td>
                 </tr>
-              ))}
+                  );
+                })}
             </tbody>
           </table>
         </div>

@@ -9,8 +9,8 @@ async function syncParentBacklogStatus(backlogItemId: string) {
   const totalJobs = siblingJobs.length;
   if (totalJobs === 0) return;
 
-  const completedJobs = siblingJobs.filter((j) => j.status === 'DONE' || j.myTaskCategory === 'DONE').length;
-  const activeJobs = siblingJobs.filter((j) => j.status === 'IN_PROGRESS' || j.status === 'IN_REVIEW').length;
+  const completedJobs = siblingJobs.filter((j: any) => j.status === 'DONE' || j.myTaskCategory === 'DONE').length;
+  const activeJobs = siblingJobs.filter((j: any) => j.status === 'IN_PROGRESS' || j.status === 'IN_REVIEW').length;
 
   let newBacklogStatus = 'PLANNED';
 
