@@ -1,8 +1,5 @@
-export const runtime = 'edge';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-
-import { SEED_PROJECTS } from '@/lib/data-store';
 
 export async function GET(request: Request) {
   try {
@@ -69,8 +66,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
-    console.warn('Fallback to SEED_PROJECTS due to D1 edge binding status:', error);
-    return NextResponse.json({ success: true, data: SEED_PROJECTS });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 

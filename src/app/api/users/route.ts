@@ -1,12 +1,28 @@
-export const runtime = 'edge';
 import { NextResponse } from 'next/server';
-import { SEED_USERS } from '@/lib/data-store';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
   try {
-    return NextResponse.json({ success: true, data: SEED_USERS });
+    const { searchParams } = new URL(request.url);
+    const sectionId = searchParams.get('sectionId');
+    const roleKey = searchParams.get('roleKey');
+
+    const where: any = {};
+    if (sectionId) where.sectionId = sectionId;
+    if (roleKey) where.role = { key: roleKey };
+
+    const users = await prisma.user.findMany({
+      where,
+      include: {
+        role: true,
+        section: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return NextResponse.json({ success: true, data: users });
   } catch (error: any) {
-    return NextResponse.json({ success: true, data: SEED_USERS });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
@@ -14,16 +30,24 @@ export async function POST(request: Request) {
   try {
     const body: any = await request.json();
     const avatarSeed = encodeURIComponent(body.name || 'User');
-    const newUser = {
-      id: `user-${Date.now()}`,
-      name: body.name,
-      email: body.email,
-      roleId: body.roleId || '732ce5ba-a573-4dd4-9543-a8989554c69a',
-      sectionId: body.sectionId || '87eddf4e-7d77-4caf-acc5-9e4e1e2d5f22',
-      avatarUrl: body.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`,
-    };
-    return NextResponse.json({ success: true, data: newUser });
+
+    const user = await prisma.user.create({
+      data: {
+        name: body.name,
+        email: body.email,
+        password: body.password || '123456',
+        roleId: body.roleId,
+        sectionId: body.sectionId || null,
+        avatarUrl: body.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`,
+      },
+      include: {
+        role: true,
+        section: true,
+      },
+    });
+
+    return NextResponse.json({ success: true, data: user });
   } catch (error: any) {
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
