@@ -205,7 +205,7 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
     setTaskPriority('MEDIUM');
     setTaskStatus('TODO');
 
-    const initProjectId = defaultProjId || (selectedProjectId !== 'ALL' ? selectedProjectId : (projects[0]?.id || ''));
+    const initProjectId = defaultProjId || (selectedProjectId !== 'ALL' ? selectedProjectId : (projectsWithSprints[0]?.id || projects[0]?.id || ''));
     setModalProjectId(initProjectId);
 
     const projSprints = sprints.filter((s) => s.projectId === initProjectId);
@@ -354,7 +354,12 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
         p.members?.some((m: any) => m.userId === currentUser?.id || m.user?.id === currentUser?.id)
       );
 
-  const accessibleProjectIds = new Set(accessibleProjects.map((p) => p.id));
+  // Strictly filter projects to ONLY those that have at least one Sprint created
+  const projectsWithSprints = accessibleProjects.filter((p) =>
+    sprints.some((s) => s.projectId === p.id)
+  );
+
+  const accessibleProjectIds = new Set(projectsWithSprints.map((p) => p.id));
 
   // Sprints available under selected Project and accessible projects
   const availableSprints = sprints.filter(
@@ -374,10 +379,10 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
   const modalSprints = sprints.filter((s) => !modalProjectId || s.projectId === modalProjectId);
   const modalBacklogs = backlogs.filter((b) => !modalSprintId || b.sprintId === modalSprintId);
 
-  // Projects list to render (All accessible projects vs Single selected project)
+  // Projects list to render (Only projects with at least one Sprint created)
   const displayProjects = selectedProjectId === 'ALL'
-    ? accessibleProjects
-    : accessibleProjects.filter((p) => p.id === selectedProjectId);
+    ? projectsWithSprints
+    : projectsWithSprints.filter((p) => p.id === selectedProjectId);
 
   const columns: Array<{ id: 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE'; title: string; color: string }> = [
     { id: 'TODO', title: '📋 To Do (งานที่จะทำ)', color: 'border-slate-700 bg-slate-900/50' },
@@ -450,8 +455,8 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
               }}
               className="bg-slate-950 border border-slate-800 text-slate-200 py-2 px-3 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
-              <option value="ALL">-- แสดงทุกโครงการที่คุณมีสิทธิ์ ({accessibleProjects.length}) --</option>
-              {accessibleProjects.map((p) => (
+              <option value="ALL">-- แสดงเฉพาะโครงการที่มี Sprint ({projectsWithSprints.length}) --</option>
+              {projectsWithSprints.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} ({p.code})
                 </option>
@@ -486,7 +491,7 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
           <div className="bg-purple-950/30 border border-purple-500/30 p-3 rounded-xl text-xs text-purple-200 flex items-center justify-between">
             <div className="flex items-center gap-2 font-semibold">
               <FolderKanban className="w-4 h-4 text-purple-400" />
-              <span>แสดงผลแยกบอร์ดรายโครงการ ({projects.length} โครงการในระบบ):</span>
+              <span>แสดงผลเฉพาะโครงการที่มีการสร้าง Sprint แล้ว ({projectsWithSprints.length} โครงการ):</span>
             </div>
             <span className="text-[11px] text-slate-400">บอร์ดแต่ละโครงการจะถูกแยกเป็นคอลัมน์ของตัวเองอย่างชัดเจน</span>
           </div>
@@ -497,7 +502,14 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
       {loading ? (
         <div className="py-12 text-center text-slate-400 text-xs">กำลังโหลด Kanban Board...</div>
       ) : displayProjects.length === 0 ? (
-        <div className="py-12 text-center text-slate-500 text-xs italic">ไม่พบโครงการในระบบ</div>
+        <div className="bg-slate-900 border border-amber-500/30 p-10 rounded-3xl text-center space-y-3">
+          <Calendar className="w-10 h-10 text-amber-400 mx-auto" />
+          <h3 className="text-base font-bold text-white">ยังไม่มีโครงการใดที่เริ่มสร้างตาราง Sprint</h3>
+          <p className="text-slate-400 text-xs max-w-md mx-auto">
+            หน้า Kanban Board จะแสดงผลเฉพาะโครงการที่มีการกำหนด <strong className="text-blue-400">Sprint</strong> แล้วเท่านั้น
+            หากต้องการสร้างการ์ดงาน โปรดไปที่เมนู <strong className="text-blue-400">"Sprint Board"</strong> เพื่อเริ่มสร้าง Sprint ให้กับโครงการก่อน
+          </p>
+        </div>
       ) : (
         <div className="space-y-10">
           {displayProjects.map((proj) => {
@@ -723,7 +735,7 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
                 onChange={(e) => handleModalProjectChange(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 text-white font-medium rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
               >
-                {projects.map((p) => (
+                {projectsWithSprints.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name} ({p.code})
                   </option>
