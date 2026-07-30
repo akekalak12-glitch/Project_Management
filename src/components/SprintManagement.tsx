@@ -66,8 +66,6 @@ interface SprintManagementProps {
   onOpenKanbanForSprint?: (sprintId: string) => void;
 }
 
-import { LocalStorageManager } from '@/lib/storage-manager';
-
 export default function SprintManagement({ onOpenKanbanForSprint }: SprintManagementProps) {
   const { currentUser, canCreateProject, isExecutive, isAdvisor } = useAuth();
   const [sprints, setSprints] = useState<SprintItem[]>([]);
@@ -103,67 +101,58 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
   const [targetSprintId, setTargetSprintId] = useState('');
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(0);
 
-  useEffect(() => {
-    const syncData = () => {
-      const loadedSprints = LocalStorageManager.getSprints();
-      setSprints(loadedSprints);
-      setExpandedSprintIds(loadedSprints.map((s: any) => s.id));
-      const localPrjs = LocalStorageManager.getProjects();
-      if (localPrjs && localPrjs.length > 0) setProjects(localPrjs);
-      setBacklogItems(LocalStorageManager.getBacklogs());
-      setTasks(LocalStorageManager.getTasks());
-    };
-
-    syncData();
-
-    const fetchProjectsApi = async () => {
-      try {
-        const res = await fetch('/api/projects');
-        if (res.ok) {
-          const data: any = await res.json();
-          if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-            setProjects(data.data);
-            LocalStorageManager.setProjects(data.data);
-          }
+  // Always read from the live database, never from a local cache, so this
+  // board reflects the real current state after edits made here or in
+  // other screens (Kanban etc. dispatch 'app_data_synced').
+  const fetchData = async () => {
+    try {
+      const [resSprints, resPrj, resBacklog, resTasks] = await Promise.all([
+        fetch('/api/sprints'),
+        fetch('/api/projects'),
+        fetch('/api/backlog'),
+        fetch('/api/tasks'),
+      ]);
+      if (resSprints.ok) {
+        const dataSprints: any = await resSprints.json();
+        if (dataSprints.success && Array.isArray(dataSprints.data)) {
+          setSprints(dataSprints.data);
+          setExpandedSprintIds((prev) => {
+            const ids: string[] = dataSprints.data.map((s: any) => s.id);
+            // Keep newly-seen sprints expanded by default, preserve existing
+            // collapse/expand choices for sprints already known.
+            const merged = new Set([...prev.filter((id) => ids.includes(id)), ...ids]);
+            return Array.from(merged);
+          });
         }
-      } catch (e) {
-        console.warn('API fetch projects fallback to LocalStorageManager', e);
       }
-    };
+      if (resPrj.ok) {
+        const dataPrj: any = await resPrj.json();
+        if (dataPrj.success && Array.isArray(dataPrj.data)) setProjects(dataPrj.data);
+      }
+      if (resBacklog.ok) {
+        const dataBacklog: any = await resBacklog.json();
+        if (dataBacklog.success && Array.isArray(dataBacklog.data)) setBacklogItems(dataBacklog.data);
+      }
+      if (resTasks.ok) {
+        const dataTasks: any = await resTasks.json();
+        if (dataTasks.success && Array.isArray(dataTasks.data)) setTasks(dataTasks.data);
+      }
+    } catch (e) {
+      console.error('Failed to load sprints/projects/backlog/tasks', e);
+    }
+  };
 
-    fetchProjectsApi();
-
+  useEffect(() => {
+    fetchData();
     if (typeof window !== 'undefined') {
-      window.addEventListener('app_data_synced', syncData);
+      window.addEventListener('app_data_synced', fetchData);
     }
     return () => {
       if (typeof window !== 'undefined') {
-        window.removeEventListener('app_data_synced', syncData);
+        window.removeEventListener('app_data_synced', fetchData);
       }
     };
   }, []);
-
-  const updateSprintsState = (newSprints: SprintItem[] | ((prev: SprintItem[]) => SprintItem[])) => {
-    setSprints((prev) => {
-      const nextSprints = typeof newSprints === 'function' ? newSprints(prev) : newSprints;
-      LocalStorageManager.setSprints(nextSprints);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('app_data_synced'));
-      }
-      return nextSprints;
-    });
-  };
-
-  const updateBacklogsState = (newBacklogs: BacklogItem[] | ((prev: BacklogItem[]) => BacklogItem[])) => {
-    setBacklogItems((prev) => {
-      const nextBacklogs = typeof newBacklogs === 'function' ? newBacklogs(prev) : newBacklogs;
-      LocalStorageManager.setBacklogs(nextBacklogs);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('app_data_synced'));
-      }
-      return nextBacklogs;
-    });
-  };
 
   // Helper to calculate total number of slots (Weeks or Calendar Months) in a Sprint
   const calculateSprintSlots = (sprint: SprintItem): PeriodSlot[] => {
@@ -247,7 +236,7 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
   };
 
   const handleOpenAddSprint = () => {
-    const currentPrjs = projects.length > 0 ? projects : LocalStorageManager.getProjects();
+    const currentPrjs = projects;
     setEditingSprintId(null);
     setSprintName('');
     setSprintGoal('');
@@ -282,35 +271,12 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
     e.preventDefault();
     if (!sprintName.trim() || !sprintStartDate || !sprintEndDate) return;
     const targetProjId = sprintProjectId || projects[0]?.id;
-    const matchedProject = projects.find((p) => p.id === targetProjId) || projects[0];
-
-    const newSprintObj: SprintItem = {
-      id: editingSprintId || `sprint-${Date.now()}`,
-      name: sprintName,
-      goal: sprintGoal,
-      cadence: sprintCadence,
-      startDate: sprintStartDate,
-      endDate: sprintEndDate,
-      status: sprintStatus,
-      projectId: targetProjId,
-      project: matchedProject,
-      backlogItems: [],
-    };
-
-    // Optimistic UI state update with LocalStorage sync
-    if (editingSprintId) {
-      updateSprintsState((prev) => prev.map((s) => (s.id === editingSprintId ? newSprintObj : s)));
-    } else {
-      updateSprintsState((prev) => [newSprintObj, ...prev]);
-      setExpandedSprintIds((prev) => [...prev, newSprintObj.id]);
-    }
-    setShowSprintModal(false);
 
     try {
       const url = editingSprintId ? `/api/sprints/${editingSprintId}` : '/api/sprints';
       const method = editingSprintId ? 'PUT' : 'POST';
 
-      await fetch(url, {
+      const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -323,18 +289,37 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
           status: sprintStatus,
         }),
       });
+      const data: any = await res.json();
+      if (data.success) {
+        setShowSprintModal(false);
+        if (!editingSprintId && data.data?.id) {
+          setExpandedSprintIds((prev) => [...prev, data.data.id]);
+        }
+        await fetchData();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('app_data_synced'));
+        }
+      } else {
+        alert(`ไม่สามารถบันทึก Sprint ได้: ${data.error}`);
+      }
     } catch (e: any) {
-      console.warn('Backend API save sprint fallback to optimistic state', e);
+      console.error('Failed to save sprint', e);
     }
   };
 
   const handleDeleteSprint = async (id: string, name: string) => {
     if (!confirm(`คุณต้องการลบ Sprint "${name}" และ Backlog ทั้งหมดใน Sprint นี้ใช่หรือไม่?`)) return;
-    updateSprintsState((prev) => prev.filter((s) => s.id !== id));
     try {
-      await fetch(`/api/sprints/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/sprints/${id}`, { method: 'DELETE' });
+      const data: any = await res.json();
+      if (data.success) {
+        await fetchData();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('app_data_synced'));
+        }
+      }
     } catch (e) {
-      console.warn('Backend API delete sprint fallback to optimistic state', e);
+      console.error('Failed to delete sprint', e);
     }
   };
 
@@ -395,32 +380,11 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
     e.preventDefault();
     if (!backlogTitle || !targetSprintId) return;
 
-    const matchedSprint = sprints.find((s) => s.id === targetSprintId);
-    const newBacklogObj: BacklogItem = {
-      id: editingBacklogId || `backlog-${Date.now()}`,
-      sprintId: targetSprintId,
-      title: backlogTitle,
-      description: backlogDesc,
-      priority: backlogPriority,
-      status: editingBacklogId ? 'FLEXIBLE_REVISED' : 'PLANNED',
-      startDate: backlogStartDate,
-      endDate: backlogEndDate,
-      sprint: matchedSprint,
-    };
-
-    // Optimistic UI state update with LocalStorage sync
-    if (editingBacklogId) {
-      updateBacklogsState((prev) => prev.map((b) => (b.id === editingBacklogId ? newBacklogObj : b)));
-    } else {
-      updateBacklogsState((prev) => [newBacklogObj, ...prev]);
-    }
-    setShowBacklogModal(false);
-
     try {
       const url = editingBacklogId ? `/api/backlog/${editingBacklogId}` : '/api/backlog';
       const method = editingBacklogId ? 'PUT' : 'POST';
 
-      await fetch(url, {
+      const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -433,18 +397,34 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
           status: editingBacklogId ? 'FLEXIBLE_REVISED' : 'PLANNED',
         }),
       });
+      const data: any = await res.json();
+      if (data.success) {
+        setShowBacklogModal(false);
+        await fetchData();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('app_data_synced'));
+        }
+      } else {
+        alert(`ไม่สามารถบันทึก Backlog ได้: ${data.error}`);
+      }
     } catch (e) {
-      console.warn('Backend API save backlog fallback to optimistic state', e);
+      console.error('Failed to save backlog', e);
     }
   };
 
   const handleDeleteBacklog = async (id: string, title: string) => {
     if (!confirm(`คุณต้องการลบ Backlog Item "${title}" ใช่หรือไม่?`)) return;
-    updateBacklogsState((prev) => prev.filter((b) => b.id !== id));
     try {
-      await fetch(`/api/backlog/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/backlog/${id}`, { method: 'DELETE' });
+      const data: any = await res.json();
+      if (data.success) {
+        await fetchData();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('app_data_synced'));
+        }
+      }
     } catch (e) {
-      console.warn('Backend API delete backlog fallback to optimistic state', e);
+      console.error('Failed to delete backlog', e);
     }
   };
 

@@ -90,22 +90,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [usersList, setUsersList] = useState<UserProfile[]>([DEFAULT_SUPER_ADMIN_USER]);
   const [loading, setLoading] = useState(true);
 
+  // Users list is always sourced from the live database first. LocalStorage
+  // is only used as a last-resort fallback if the API is unreachable, so a
+  // fresh browser (or one with stale localStorage) never shows seed/stale
+  // data instead of the real DB state.
   const fetchUsers = async () => {
     try {
+      const res = await fetch('/api/users');
+      if (res.ok) {
+        const data: any = await res.json();
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+          setUsersList(data.data);
+          return;
+        }
+      }
+      throw new Error('API returned no users');
+    } catch (e) {
+      console.warn('API users unreachable, falling back to local cache', e);
       const loadedUsers = LocalStorageManager.getUsers();
       if (loadedUsers && loadedUsers.length > 0) {
         setUsersList(loadedUsers);
-      } else {
-        const res = await fetch('/api/users');
-        if (res.ok) {
-          const data: any = await res.json();
-          if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-            setUsersList(data.data);
-          }
-        }
       }
-    } catch (e) {
-      console.warn('API users unreachable, using default user list state', e);
     }
   };
 
@@ -113,24 +118,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const savedUserId = typeof window !== 'undefined' ? localStorage.getItem('active_user_id') : null;
       if (savedUserId) {
-        const currentList = LocalStorageManager.getUsers();
-        const found = currentList.find((u: UserProfile) => u.id === savedUserId);
-        if (found) {
-          setCurrentUser(found);
-          setIsLoggedIn(true);
-        } else {
+        try {
           const res = await fetch(`/api/auth/me?userId=${savedUserId}`);
           if (res.ok) {
             const data: any = await res.json();
             if (data.success && data.user) {
               setCurrentUser(data.user);
               setIsLoggedIn(true);
+              return;
             }
+          }
+          throw new Error('API returned no user');
+        } catch (apiError) {
+          console.warn('API auth/me unreachable, falling back to local cache', apiError);
+          const currentList = LocalStorageManager.getUsers();
+          const found = currentList.find((u: UserProfile) => u.id === savedUserId);
+          if (found) {
+            setCurrentUser(found);
+            setIsLoggedIn(true);
           }
         }
       }
-    } catch (e) {
-      console.warn('API auth/me unreachable', e);
     } finally {
       setLoading(false);
     }
@@ -142,14 +150,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, passwordInput?: string): Promise<boolean> => {
-    const list = LocalStorageManager.getUsers();
-    const matched = list.find(
-      (u: UserProfile) => u.email.toLowerCase() === email.toLowerCase().trim()
-    ) || usersList.find(
+    // usersList is sourced from the live database (fetchUsers()), so this
+    // lookup reflects real DB users rather than a stale local cache.
+    const matched = usersList.find(
       (u: UserProfile) => u.email.toLowerCase() === email.toLowerCase().trim()
     );
 
     if (matched) {
+      // Pull the fully up-to-date record (role/permissions may have changed
+      // since usersList was last fetched) before establishing the session.
+      try {
+        const res = await fetch(`/api/auth/me?userId=${matched.id}`);
+        if (res.ok) {
+          const data: any = await res.json();
+          if (data.success && data.user) {
+            setCurrentUser(data.user);
+            setIsLoggedIn(true);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('active_user_id', data.user.id);
+            }
+            return true;
+          }
+        }
+      } catch (e) {
+        console.warn('Fresh user fetch failed, using cached list entry', e);
+      }
+
       setCurrentUser(matched);
       setIsLoggedIn(true);
       if (typeof window !== 'undefined') {
@@ -180,16 +206,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const switchUserById = async (userId: string) => {
-    const list = LocalStorageManager.getUsers();
-    const matched = list.find((u: UserProfile) => u.id === userId);
-    if (matched) {
-      setCurrentUser(matched);
-      setIsLoggedIn(true);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('active_user_id', matched.id);
-      }
-      return;
-    }
     try {
       const res = await fetch(`/api/auth/me?userId=${userId}`);
       if (res.ok) {
@@ -200,10 +216,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (typeof window !== 'undefined') {
             localStorage.setItem('active_user_id', data.user.id);
           }
+          return;
         }
       }
+      throw new Error('API returned no user');
     } catch (e) {
-      console.warn('Switch user failed, maintaining current session', e);
+      console.warn('API auth/me unreachable, falling back to local cache', e);
+      const list = LocalStorageManager.getUsers();
+      const matched = list.find((u: UserProfile) => u.id === userId);
+      if (matched) {
+        setCurrentUser(matched);
+        setIsLoggedIn(true);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('active_user_id', matched.id);
+        }
+      }
     }
   };
 

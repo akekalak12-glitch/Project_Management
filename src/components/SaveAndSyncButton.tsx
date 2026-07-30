@@ -2,13 +2,16 @@
 
 import React, { useState } from 'react';
 import { Save, CheckCircle2, RefreshCw } from 'lucide-react';
-import { LocalStorageManager } from '@/lib/storage-manager';
 
 interface SaveAndSyncButtonProps {
   onSyncComplete?: () => void;
   className?: string;
 }
 
+// Every screen that renders this button listens for the 'app_data_synced'
+// window event and, in response, refetches its data straight from the
+// live /api/* endpoints (backed by D1) — so dispatching this event here
+// triggers a genuine refresh of all mounted screens from the real database.
 export default function SaveAndSyncButton({ onSyncComplete, className = '' }: SaveAndSyncButtonProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccessMsg, setSavedSuccessMsg] = useState<string | null>(null);
@@ -16,22 +19,6 @@ export default function SaveAndSyncButton({ onSyncComplete, className = '' }: Sa
   const handleSaveAndSyncAll = async () => {
     setIsSaving(true);
     try {
-      // 1. Sync & Re-persist LocalStorageManager
-      const projects = LocalStorageManager.getProjects();
-      const sprints = LocalStorageManager.getSprints();
-      const backlogs = LocalStorageManager.getBacklogs();
-      const tasks = LocalStorageManager.getTasks();
-      const users = LocalStorageManager.getUsers();
-      const sections = LocalStorageManager.getSections();
-
-      LocalStorageManager.setProjects(projects);
-      LocalStorageManager.setSprints(sprints);
-      LocalStorageManager.setBacklogs(backlogs);
-      LocalStorageManager.setTasks(tasks);
-      LocalStorageManager.setUsers(users);
-      LocalStorageManager.setSections(sections);
-
-      // 2. Broadcast custom global event so all components & tabs update instantly
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('app_data_synced', {
           detail: { timestamp: Date.now() }
@@ -40,10 +27,10 @@ export default function SaveAndSyncButton({ onSyncComplete, className = '' }: Sa
 
       if (onSyncComplete) onSyncComplete();
 
-      setSavedSuccessMsg('บันทึกและซิงค์เชื่อมโยงข้อมูลทุกระบบเรียบร้อยแล้ว!');
+      setSavedSuccessMsg('รีเฟรชข้อมูลล่าสุดจากฐานข้อมูลทุกระบบเรียบร้อยแล้ว!');
       setTimeout(() => setSavedSuccessMsg(null), 3500);
     } catch (e) {
-      console.warn('Data sync event completed', e);
+      console.warn('Data sync event failed', e);
     } finally {
       setIsSaving(false);
     }

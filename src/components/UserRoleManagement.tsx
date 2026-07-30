@@ -19,8 +19,6 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { UserProfile, Section } from '@/lib/auth-context';
-import { SEED_ROLES } from '@/lib/data-store';
-import { LocalStorageManager } from '@/lib/storage-manager';
 import SaveAndSyncButton from './SaveAndSyncButton';
 
 interface RoleItem {
@@ -65,15 +63,36 @@ export default function UserRoleManagement() {
   const [userRoleId, setUserRoleId] = useState('');
   const [userSecId, setUserSecId] = useState('');
 
-  const fetchData = () => {
-    setUsers(LocalStorageManager.getUsers());
-    setSections(LocalStorageManager.getSections());
-    setRoles(SEED_ROLES);
-    if (!selectedRoleId && SEED_ROLES.length > 0) {
-      setSelectedRoleId(SEED_ROLES[0].id);
-      initMatrixForRole(SEED_ROLES[0]);
+  // Always read from the live database rather than a local cache, so this
+  // screen reflects the real current state (and never shows stale/seed
+  // data after another screen or session has changed something).
+  const fetchData = async () => {
+    try {
+      const [resUsers, resSections, resRoles] = await Promise.all([
+        fetch('/api/users'),
+        fetch('/api/sections'),
+        fetch('/api/roles'),
+      ]);
+      const [dataUsers, dataSections, dataRoles]: [any, any, any] = await Promise.all([
+        resUsers.json(),
+        resSections.json(),
+        resRoles.json(),
+      ]);
+
+      if (dataUsers.success) setUsers(dataUsers.data);
+      if (dataSections.success) setSections(dataSections.data);
+      if (dataRoles.success) {
+        setRoles(dataRoles.data);
+        if (!selectedRoleId && dataRoles.data.length > 0) {
+          setSelectedRoleId(dataRoles.data[0].id);
+          initMatrixForRole(dataRoles.data[0]);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load users/sections/roles', e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -205,20 +224,8 @@ export default function UserRoleManagement() {
       });
       const data: any = await res.json();
       if (data.success) {
-        // Also update LocalStorage so password displays correctly immediately
-        const currentUsers = LocalStorageManager.getUsers();
-        if (editingUserId) {
-          const updatedUsers = currentUsers.map((u: any) =>
-            u.id === editingUserId
-              ? { ...u, name: userName, email: userEmail, password: userPassword, roleId: userRoleId, sectionId: userSecId || u.sectionId }
-              : u
-          );
-          LocalStorageManager.setUsers(updatedUsers);
-        } else if (data.data) {
-          LocalStorageManager.setUsers([...currentUsers, { ...data.data, password: userPassword }]);
-        }
         setShowUserModal(false);
-        fetchData();
+        await fetchData();
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('app_data_synced'));
         }

@@ -29,49 +29,59 @@ interface ProjectSummary {
   section: { name: string; code: string };
 }
 
-import { LocalStorageManager } from '@/lib/storage-manager';
-
 export default function ExecutiveDashboard() {
   const { currentUser, isExecutive, isAdvisor } = useAuth();
   const [okrs, setOkrs] = useState<OKRItem[]>([]);
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [allTasks, setAllTasks] = useState<any[]>([]);
+  const [allSprints, setAllSprints] = useState<any[]>([]);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const syncData = () => {
-      setProjects(LocalStorageManager.getProjects());
-      setAllTasks(LocalStorageManager.getTasks());
-    };
-
-    syncData();
-
-    async function loadData() {
-      try {
-        const [resOkrs, resPrj] = await Promise.all([
-          fetch('/api/okrs'),
-          fetch('/api/projects'),
-        ]);
-        if (resOkrs.ok) {
-          const dataOkrs: any = await resOkrs.json();
-          if (dataOkrs.success && Array.isArray(dataOkrs.data) && dataOkrs.data.length > 0) setOkrs(dataOkrs.data);
-        }
-        if (resPrj.ok) {
-          const dataPrj: any = await resPrj.json();
-          if (dataPrj.success && Array.isArray(dataPrj.data) && dataPrj.data.length > 0) setProjects(dataPrj.data);
-        }
-      } catch (e) {
-        console.warn('API fetch executive dashboard fallback to seeded D1 dataset', e);
+  // Always read from the live database rather than a local cache, so this
+  // dashboard reflects real current state after edits made elsewhere.
+  const loadData = async () => {
+    try {
+      const [resOkrs, resPrj, resTasks, resSprints, resUsers] = await Promise.all([
+        fetch('/api/okrs'),
+        fetch('/api/projects'),
+        fetch('/api/tasks'),
+        fetch('/api/sprints'),
+        fetch('/api/users'),
+      ]);
+      if (resOkrs.ok) {
+        const dataOkrs: any = await resOkrs.json();
+        if (dataOkrs.success && Array.isArray(dataOkrs.data)) setOkrs(dataOkrs.data);
       }
+      if (resPrj.ok) {
+        const dataPrj: any = await resPrj.json();
+        if (dataPrj.success && Array.isArray(dataPrj.data)) setProjects(dataPrj.data);
+      }
+      if (resTasks.ok) {
+        const dataTasks: any = await resTasks.json();
+        if (dataTasks.success && Array.isArray(dataTasks.data)) setAllTasks(dataTasks.data);
+      }
+      if (resSprints.ok) {
+        const dataSprints: any = await resSprints.json();
+        if (dataSprints.success && Array.isArray(dataSprints.data)) setAllSprints(dataSprints.data);
+      }
+      if (resUsers.ok) {
+        const dataUsers: any = await resUsers.json();
+        if (dataUsers.success && Array.isArray(dataUsers.data)) setAllUsers(dataUsers.data);
+      }
+    } catch (e) {
+      console.error('Failed to load executive dashboard data', e);
     }
-    loadData();
+  };
 
+  useEffect(() => {
+    loadData();
     if (typeof window !== 'undefined') {
-      window.addEventListener('app_data_synced', syncData);
+      window.addEventListener('app_data_synced', loadData);
     }
     return () => {
       if (typeof window !== 'undefined') {
-        window.removeEventListener('app_data_synced', syncData);
+        window.removeEventListener('app_data_synced', loadData);
       }
     };
   }, []);
@@ -105,11 +115,9 @@ export default function ExecutiveDashboard() {
   const totalTasks = accessibleTasks.length;
   const doneTasks = accessibleTasks.filter((t: any) => t.status === 'DONE').length;
   const overallTaskProgress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-  const allSprints = LocalStorageManager.getSprints();
   const accessibleSprints = allSprints.filter((s: any) => accessibleProjectIds2.has(s.projectId));
   const totalSprints = accessibleSprints.length;
   // People without assigned tasks
-  const allUsers = LocalStorageManager.getUsers();
   const assignedUserIds = new Set(accessibleTasks.filter((t: any) => t.assigneeId).map((t: any) => t.assigneeId));
   const unassignedPeople = allUsers.filter((u: any) => !assignedUserIds.has(u.id)).length;
 

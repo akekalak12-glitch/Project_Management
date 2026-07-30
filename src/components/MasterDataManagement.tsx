@@ -3,9 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { Database, Plus, Users, Building2, UserPlus, Shield, Edit2, Trash2, X } from 'lucide-react';
 import { UserProfile, Section } from '@/lib/auth-context';
-
-import { SEED_ROLES } from '@/lib/data-store';
-import { LocalStorageManager } from '@/lib/storage-manager';
 import SaveAndSyncButton from './SaveAndSyncButton';
 
 interface MasterDataProps {
@@ -15,7 +12,7 @@ interface MasterDataProps {
 export default function MasterDataManagement({ focusSection = 'master' }: MasterDataProps) {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
-  const [roles, setRoles] = useState<any[]>(SEED_ROLES);
+  const [roles, setRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Section Modal State
@@ -33,12 +30,29 @@ export default function MasterDataManagement({ focusSection = 'master' }: Master
   const [userRoleId, setUserRoleId] = useState('');
   const [userSecId, setUserSecId] = useState('');
 
-  useEffect(() => {
-    const syncData = () => {
-      setUsers(LocalStorageManager.getUsers());
-      setSections(LocalStorageManager.getSections());
-    };
+  // Always read from the live database, never from a local cache, so this
+  // screen reflects the real current state after edits.
+  const syncData = async () => {
+    try {
+      const [resUsers, resSections, resRoles] = await Promise.all([
+        fetch('/api/users'),
+        fetch('/api/sections'),
+        fetch('/api/roles'),
+      ]);
+      const [dataUsers, dataSections, dataRoles]: [any, any, any] = await Promise.all([
+        resUsers.json(),
+        resSections.json(),
+        resRoles.json(),
+      ]);
+      if (dataUsers.success) setUsers(dataUsers.data);
+      if (dataSections.success) setSections(dataSections.data);
+      if (dataRoles.success) setRoles(dataRoles.data);
+    } catch (e) {
+      console.error('Failed to load users/sections/roles', e);
+    }
+  };
 
+  useEffect(() => {
     syncData();
     if (typeof window !== 'undefined') {
       window.addEventListener('app_data_synced', syncData);
@@ -49,22 +63,6 @@ export default function MasterDataManagement({ focusSection = 'master' }: Master
       }
     };
   }, []);
-
-  const updateUsersState = (newUsers: UserProfile[] | ((prev: UserProfile[]) => UserProfile[])) => {
-    setUsers((prev) => {
-      const nextUsers = typeof newUsers === 'function' ? newUsers(prev) : newUsers;
-      LocalStorageManager.setUsers(nextUsers);
-      return nextUsers;
-    });
-  };
-
-  const updateSectionsState = (newSections: Section[] | ((prev: Section[]) => Section[])) => {
-    setSections((prev) => {
-      const nextSections = typeof newSections === 'function' ? newSections(prev) : newSections;
-      LocalStorageManager.setSections(nextSections);
-      return nextSections;
-    });
-  };
 
   // Section Handlers
   const handleOpenAddSec = () => {
@@ -87,43 +85,43 @@ export default function MasterDataManagement({ focusSection = 'master' }: Master
     e.preventDefault();
     if (!secName || !secCode) return;
 
-    const newSecId = editingSecId || `sec-${Date.now()}`;
-    const newSec: Section = {
-      id: newSecId,
-      name: secName,
-      code: secCode,
-      description: secDesc,
-    };
-
-    // Optimistic state update with local storage sync
-    if (editingSecId) {
-      updateSectionsState((prev) => prev.map((s) => (s.id === editingSecId ? newSec : s)));
-    } else {
-      updateSectionsState((prev) => [newSec, ...prev]);
-    }
-    setShowSecModal(false);
-
     try {
       const url = editingSecId ? `/api/sections/${editingSecId}` : '/api/sections';
       const method = editingSecId ? 'PUT' : 'POST';
 
-      await fetch(url, {
+      const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: secName, code: secCode, description: secDesc }),
       });
+      const data: any = await res.json();
+      if (data.success) {
+        setShowSecModal(false);
+        await syncData();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('app_data_synced'));
+        }
+      } else {
+        alert(`ไม่สามารถบันทึกส่วนงานได้: ${data.error}`);
+      }
     } catch (e) {
-      console.warn('Backend API save section fallback to optimistic state', e);
+      console.error('Failed to save section', e);
     }
   };
 
   const handleDeleteSection = async (id: string, name: string) => {
     if (!confirm(`คุณต้องการลบส่วนงาน "${name}" ใช่หรือไม่?`)) return;
-    updateSectionsState((prev) => prev.filter((s) => s.id !== id));
     try {
-      await fetch(`/api/sections/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/sections/${id}`, { method: 'DELETE' });
+      const data: any = await res.json();
+      if (data.success) {
+        await syncData();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('app_data_synced'));
+        }
+      }
     } catch (e) {
-      console.warn('Backend API delete section fallback to optimistic state', e);
+      console.error('Failed to delete section', e);
     }
   };
 
@@ -150,54 +148,50 @@ export default function MasterDataManagement({ focusSection = 'master' }: Master
     e.preventDefault();
     if (!userName || !userEmail) return;
 
-    const matchedRole = roles.find((r) => r.id === userRoleId) || roles[0] || { id: '732ce5ba-a573-4dd4-9543-a8989554c69a', title: 'เจ้าหน้าที่', key: 'STAFF', permissionLevel: 10 };
-    const matchedSec = sections.find((s) => s.id === userSecId);
-
-    const newUserObj: UserProfile = {
-      id: editingUserId || `user-${Date.now()}`,
-      name: userName,
-      email: userEmail,
-      roleId: matchedRole.id,
-      role: matchedRole,
-      sectionId: matchedSec?.id,
-      section: matchedSec,
-      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userName)}`,
-    };
-
-    // Optimistic state update with local storage sync
-    if (editingUserId) {
-      updateUsersState((prev) => prev.map((u) => (u.id === editingUserId ? newUserObj : u)));
-    } else {
-      updateUsersState((prev) => [newUserObj, ...prev]);
-    }
-    setShowUserModal(false);
+    const matchedRole = roles.find((r) => r.id === userRoleId) || roles[0];
 
     try {
       const url = editingUserId ? `/api/users/${editingUserId}` : '/api/users';
       const method = editingUserId ? 'PUT' : 'POST';
 
-      await fetch(url, {
+      const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: userName,
           email: userEmail,
-          roleId: matchedRole.id,
+          roleId: matchedRole?.id ?? userRoleId,
           sectionId: userSecId || null,
         }),
       });
+      const data: any = await res.json();
+      if (data.success) {
+        setShowUserModal(false);
+        await syncData();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('app_data_synced'));
+        }
+      } else {
+        alert(`ไม่สามารถบันทึกข้อมูลผู้ใช้ได้: ${data.error}`);
+      }
     } catch (e) {
-      console.warn('Backend API save user fallback to optimistic state', e);
+      console.error('Failed to save user', e);
     }
   };
 
   const handleDeleteUser = async (id: string, name: string) => {
     if (!confirm(`คุณต้องการลบเจ้าหน้าที่ "${name}" ใช่หรือไม่?`)) return;
-    updateUsersState((prev) => prev.filter((u) => u.id !== id));
     try {
-      await fetch(`/api/users/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+      const data: any = await res.json();
+      if (data.success) {
+        await syncData();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('app_data_synced'));
+        }
+      }
     } catch (e) {
-      console.warn('Backend API delete user fallback to optimistic state', e);
+      console.error('Failed to delete user', e);
     }
   };
 

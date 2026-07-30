@@ -72,8 +72,6 @@ interface KanbanBoardProps {
   initialSprintId?: string;
 }
 
-import { LocalStorageManager } from '@/lib/storage-manager';
-
 export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
   const { currentUser, isStaff, isExecutive, isAdvisor } = useAuth();
   const [tasks, setTasks] = useState<TaskItem[]>([]);
@@ -81,37 +79,6 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
   const [projects, setProjects] = useState<any[]>([]);
   const [backlogs, setBacklogs] = useState<any[]>([]);
   const [usersList, setUsersList] = useState<any[]>([]);
-
-  useEffect(() => {
-    const syncData = () => {
-      setTasks(LocalStorageManager.getTasks());
-      setSprints(LocalStorageManager.getSprints());
-      setProjects(LocalStorageManager.getProjects());
-      setBacklogs(LocalStorageManager.getBacklogs());
-      setUsersList(LocalStorageManager.getUsers());
-    };
-
-    syncData();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('app_data_synced', syncData);
-    }
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('app_data_synced', syncData);
-      }
-    };
-  }, []);
-
-  const updateTasksState = (newTasks: TaskItem[] | ((prev: TaskItem[]) => TaskItem[])) => {
-    setTasks((prev) => {
-      const nextTasks = typeof newTasks === 'function' ? newTasks(prev) : newTasks;
-      LocalStorageManager.setTasks(nextTasks);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('app_data_synced'));
-      }
-      return nextTasks;
-    });
-  };
 
   // BOARD SELECTION
   const [selectedProjectId, setSelectedProjectId] = useState<string>('ALL');
@@ -180,41 +147,23 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
 
   useEffect(() => {
     fetchBoardData();
+    const handleSync = () => fetchBoardData();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('app_data_synced', handleSync);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('app_data_synced', handleSync);
+      }
+    };
   }, [currentUser, isStaff, initialSprintId]);
 
   // Update Task Status
   const updateTaskStatus = async (taskId: string, newColumnStatus: 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE') => {
-    const targetTask = tasks.find((t) => t.id === taskId);
-    updateTasksState((prevTasks) =>
-      prevTasks.map((t) => (t.id === taskId ? { ...t, status: newColumnStatus } : t))
-    );
-
-    // Sync parent backlog item status based on ALL tasks under it
-    if (targetTask?.backlogItemId) {
-      setBacklogs((prevBacklogs) => {
-        // Get latest task list with the newly updated task included
-        const updatedTasks = tasks.map((t) => t.id === taskId ? { ...t, status: newColumnStatus } : t);
-        const siblingTasks = updatedTasks.filter((t) => t.backlogItemId === targetTask.backlogItemId);
-
-        let newBacklogStatus: string = 'PLANNED';
-        if (siblingTasks.length > 0) {
-          const allDone = siblingTasks.every((t) => t.status === 'DONE');
-          const anyInProgress = siblingTasks.some((t) => t.status === 'IN_PROGRESS' || t.status === 'IN_REVIEW');
-          if (allDone) newBacklogStatus = 'SUCCESS';
-          else if (anyInProgress) newBacklogStatus = 'IN_PROGRESS';
-          else newBacklogStatus = 'PLANNED';
-        } else {
-          // Fallback if no sibling tasks found
-          newBacklogStatus = newColumnStatus === 'DONE' ? 'SUCCESS' : (newColumnStatus === 'IN_PROGRESS' || newColumnStatus === 'IN_REVIEW' ? 'IN_PROGRESS' : 'PLANNED');
-        }
-
-        const nextBacklogs = prevBacklogs.map((b) =>
-          b.id === targetTask.backlogItemId ? { ...b, status: newBacklogStatus } : b
-        );
-        LocalStorageManager.setBacklogs(nextBacklogs);
-        return nextBacklogs;
-      });
-    }
+    // Optimistic UI update for a snappy drag-and-drop feel; the API call
+    // below (and the subsequent fetchBoardData refresh) is the source of
+    // truth — the server also recalculates the parent backlog item's status.
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newColumnStatus } : t)));
 
     if (newColumnStatus === 'DONE') {
       setSyncStatusMsg('⚡ Real-time Sync: งานเสร็จสิ้นแล้ว! ระบบอัปเดต Backlog ต้นทางเป็น "SUCCESS" อัตโนมัติ!');
@@ -224,18 +173,24 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
       setTimeout(() => setSyncStatusMsg(null), 4000);
     }
 
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('app_data_synced'));
-    }
-
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      const res = await fetch(`/api/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newColumnStatus }),
       });
+      const data: any = await res.json();
+      if (!data.success) {
+        console.error('Failed to update task status', data.error);
+        alert('ไม่สามารถอัปเดตสถานะงานได้: ' + (data.error || 'unknown error'));
+      }
     } catch (e) {
       console.error('Failed to update task status', e);
+    } finally {
+      await fetchBoardData();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app_data_synced'));
+      }
     }
   };
 
@@ -336,90 +291,40 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
       return;
     }
 
-    const matchedProject = projects.find((p) => p.id === modalProjectId) || projects[0];
     const matchedAssignee = usersList.find((u) => selectedAssigneeIds.includes(u.id)) || usersList[0] || currentUser;
 
     let finalBacklogId = modalBacklogId;
 
-    // Auto-generate a Backlog Item if modalBacklogId is empty or AUTO_CREATE
-    if ((!modalBacklogId || modalBacklogId === 'AUTO_CREATE') && modalSprintId) {
-      const parentSprint = sprints.find((s) => s.id === modalSprintId);
-      const newBacklogItem = {
-        id: `backlog-${Date.now()}`,
-        sprintId: modalSprintId,
-        title: taskTitle,
-        description: taskDesc || `Backlog Item ที่สร้างจากการ์ดงาน Task`,
-        priority: taskPriority,
-        status: taskStatus === 'DONE' ? 'SUCCESS' : (taskStatus === 'IN_PROGRESS' ? 'IN_PROGRESS' : 'PLANNED'),
-        assigneeId: matchedAssignee?.id,
-        assignee: matchedAssignee,
-        sprint: parentSprint ? { id: parentSprint.id, name: parentSprint.name, project: matchedProject } : undefined,
-      };
-
-      const updatedBacklogs = [newBacklogItem, ...backlogs];
-      setBacklogs(updatedBacklogs);
-      LocalStorageManager.setBacklogs(updatedBacklogs);
-      finalBacklogId = newBacklogItem.id;
-    }
-
-    const newTaskObj: TaskItem = {
-      id: editingTaskId || `task-${Date.now()}`,
-      title: taskTitle,
-      description: taskDesc,
-      priority: taskPriority,
-      status: taskStatus,
-      dueDate: taskDueDate || undefined,
-      projectId: modalProjectId || matchedProject?.id,
-      sprintId: modalSprintId,
-      backlogItemId: finalBacklogId && finalBacklogId !== 'AUTO_CREATE' ? finalBacklogId : undefined,
-      assigneeId: matchedAssignee?.id,
-      assignee: matchedAssignee,
-      project: matchedProject ? { name: matchedProject.name, code: matchedProject.code } : undefined,
-    };
-
-    // Optimistic UI state update with LocalStorage sync
-    let latestTasks: TaskItem[] = [];
-    if (editingTaskId) {
-      updateTasksState((prev) => {
-        const next = prev.map((t) => (t.id === editingTaskId ? newTaskObj : t));
-        latestTasks = next;
-        return next;
-      });
-    } else {
-      updateTasksState((prev) => {
-        const next = [newTaskObj, ...prev];
-        latestTasks = next;
-        return next;
-      });
-    }
-
-    // Recalculate parent Backlog status from all tasks under that backlog
-    if (newTaskObj.backlogItemId) {
-      setBacklogs((prevBacklogs) => {
-        const allTasksForBacklog = latestTasks.filter((t) => t.backlogItemId === newTaskObj.backlogItemId);
-        let newBacklogStatus = 'PLANNED';
-        if (allTasksForBacklog.length > 0) {
-          const allDone = allTasksForBacklog.every((t) => t.status === 'DONE');
-          const anyInProgress = allTasksForBacklog.some((t) => t.status === 'IN_PROGRESS' || t.status === 'IN_REVIEW');
-          if (allDone) newBacklogStatus = 'SUCCESS';
-          else if (anyInProgress) newBacklogStatus = 'IN_PROGRESS';
-          else newBacklogStatus = 'PLANNED';
-        }
-        const nextBacklogs = prevBacklogs.map((b) =>
-          b.id === newTaskObj.backlogItemId ? { ...b, status: newBacklogStatus } : b
-        );
-        LocalStorageManager.setBacklogs(nextBacklogs);
-        return nextBacklogs;
-      });
-    }
-
-    setShowTaskModal(false);
-
     try {
+      // Auto-create a real Backlog Item via the API if none was selected —
+      // the task's backlogItemId is a real foreign key in D1, so we must
+      // have an actual persisted backlog row before creating the task.
+      if ((!modalBacklogId || modalBacklogId === 'AUTO_CREATE') && modalSprintId) {
+        const resBacklog = await fetch('/api/backlog', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sprintId: modalSprintId,
+            title: taskTitle,
+            description: taskDesc || 'Backlog Item ที่สร้างจากการ์ดงาน Task',
+            priority: taskPriority,
+            status: taskStatus === 'DONE' ? 'SUCCESS' : (taskStatus === 'IN_PROGRESS' ? 'IN_PROGRESS' : 'PLANNED'),
+            assigneeId: matchedAssignee?.id,
+          }),
+        });
+        const dataBacklog: any = await resBacklog.json();
+        if (dataBacklog.success && dataBacklog.data?.id) {
+          finalBacklogId = dataBacklog.data.id;
+        } else {
+          alert('ไม่สามารถสร้าง Backlog Item อัตโนมัติได้: ' + (dataBacklog.error || 'unknown error'));
+          return;
+        }
+      }
+
       const url = editingTaskId ? `/api/tasks/${editingTaskId}` : '/api/tasks';
       const method = editingTaskId ? 'PATCH' : 'POST';
 
-      await fetch(url, {
+      const resTask = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -429,24 +334,45 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
           status: taskStatus,
           projectId: modalProjectId || undefined,
           sprintId: modalSprintId || undefined,
-          backlogItemId: modalBacklogId || undefined,
+          backlogItemId: finalBacklogId && finalBacklogId !== 'AUTO_CREATE' ? finalBacklogId : undefined,
           reporterId: currentUser?.id,
           assigneeIds: selectedAssigneeIds,
         }),
       });
+      const dataTask: any = await resTask.json();
+      if (!dataTask.success) {
+        alert('ไม่สามารถบันทึกการ์ดงานได้: ' + (dataTask.error || 'unknown error'));
+        return;
+      }
+
+      setShowTaskModal(false);
+      await fetchBoardData();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app_data_synced'));
+      }
     } catch (e: any) {
-      console.warn('Backend API save task fallback to optimistic state', e);
+      console.error('Failed to save task', e);
+      alert('เกิดข้อผิดพลาดในการบันทึกการ์ดงาน');
     }
   };
 
   // Delete Task
   const handleDeleteTask = async (taskId: string, title: string) => {
     if (!confirm(`คุณต้องการลบการ์ดงาน "${title}" ใช่หรือไม่?`)) return;
-    updateTasksState((prev) => prev.filter((t) => t.id !== taskId));
     try {
-      await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
+      const data: any = await res.json();
+      if (!data.success) {
+        alert('ไม่สามารถลบการ์ดงานได้: ' + (data.error || 'unknown error'));
+        return;
+      }
+      await fetchBoardData();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app_data_synced'));
+      }
     } catch (e) {
-      console.warn('Backend API delete task fallback to optimistic state', e);
+      console.error('Failed to delete task', e);
+      alert('เกิดข้อผิดพลาดในการลบการ์ดงาน');
     }
   };
 

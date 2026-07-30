@@ -34,8 +34,6 @@ interface ProjectItem {
   _count?: { tasks: number };
 }
 
-import { LocalStorageManager } from '@/lib/storage-manager';
-
 export default function ProjectPortfolio() {
   const { currentUser, canCreateProject, canManageTeam, isExecutive, isAdvisor } = useAuth();
   const [projects, setProjects] = useState<ProjectItem[]>([]);
@@ -45,33 +43,6 @@ export default function ProjectPortfolio() {
   const [search, setSearch] = useState('');
   const [selectedSection, setSelectedSection] = useState('ALL');
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const syncData = () => {
-      setProjects(LocalStorageManager.getProjects());
-      setSections(LocalStorageManager.getSections());
-      setProjectOwners(LocalStorageManager.getUsers());
-      setTasks(LocalStorageManager.getTasks());
-    };
-
-    syncData();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('app_data_synced', syncData);
-    }
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('app_data_synced', syncData);
-      }
-    };
-  }, []);
-
-  const updateProjectsState = (newPrjs: ProjectItem[] | ((prev: ProjectItem[]) => ProjectItem[])) => {
-    setProjects((prev) => {
-      const nextPrjs = typeof newPrjs === 'function' ? newPrjs(prev) : newPrjs;
-      LocalStorageManager.setProjects(nextPrjs);
-      return nextPrjs;
-    });
-  };
 
   // Team Formation Modal State
   const [activeProjectForTeam, setActiveProjectForTeam] = useState<{ id: string; name: string } | null>(null);
@@ -89,32 +60,48 @@ export default function ProjectPortfolio() {
   const [prjOwnerId, setPrjOwnerId] = useState('');
   const [prjStatus, setPrjStatus] = useState('PLANNING');
 
+  // Always read from the live database, never from a local cache, so this
+  // screen reflects the real current state after edits made here or in
+  // other screens (Sprint/Kanban etc. dispatch 'app_data_synced').
   const fetchProjectsData = async () => {
     try {
-      const [resPrj, resSec, resUsers] = await Promise.all([
+      const [resPrj, resSec, resUsers, resTasks] = await Promise.all([
         fetch('/api/projects'),
         fetch('/api/sections'),
         fetch('/api/users'),
+        fetch('/api/tasks'),
       ]);
       if (resPrj.ok) {
         const dataPrj: any = await resPrj.json();
-        if (dataPrj.success && Array.isArray(dataPrj.data) && dataPrj.data.length > 0) setProjects(dataPrj.data);
+        if (dataPrj.success && Array.isArray(dataPrj.data)) setProjects(dataPrj.data);
       }
       if (resSec.ok) {
         const dataSec: any = await resSec.json();
-        if (dataSec.success && Array.isArray(dataSec.data) && dataSec.data.length > 0) setSections(dataSec.data);
+        if (dataSec.success && Array.isArray(dataSec.data)) setSections(dataSec.data);
       }
       if (resUsers.ok) {
         const dataUsers: any = await resUsers.json();
-        if (dataUsers.success && Array.isArray(dataUsers.data) && dataUsers.data.length > 0) setProjectOwners(dataUsers.data);
+        if (dataUsers.success && Array.isArray(dataUsers.data)) setProjectOwners(dataUsers.data);
+      }
+      if (resTasks.ok) {
+        const dataTasks: any = await resTasks.json();
+        if (dataTasks.success && Array.isArray(dataTasks.data)) setTasks(dataTasks.data);
       }
     } catch (e) {
-      console.warn('API fetch projects fallback to seeded D1 dataset', e);
+      console.error('Failed to load projects/sections/users/tasks', e);
     }
   };
 
   useEffect(() => {
     fetchProjectsData();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('app_data_synced', fetchProjectsData);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('app_data_synced', fetchProjectsData);
+      }
+    };
   }, [currentUser?.id]);
 
   const handleModalSectionChange = (secId: string) => {
@@ -166,59 +153,53 @@ export default function ProjectPortfolio() {
     e.preventDefault();
     if (!prjName || !prjCode) return;
 
-    const matchedSec = sections.find((s) => s.id === prjSecId) || sections[0] || { id: 'sec-1', name: 'ส่วนงาน', code: 'SEC' };
+    const matchedSec = sections.find((s) => s.id === prjSecId) || sections[0];
     const matchedOwner = projectOwners.find((u) => u.id === prjOwnerId) || projectOwners[0] || currentUser;
-
-    const newPrj: ProjectItem = {
-      id: editingPrjId || `prj-${Date.now()}`,
-      name: prjName,
-      code: prjCode,
-      description: prjDesc,
-      sectionId: matchedSec.id,
-      section: matchedSec,
-      ownerId: matchedOwner?.id || 'owner-1',
-      owner: matchedOwner,
-      status: prjStatus,
-      members: [],
-      _count: { tasks: 0 },
-    };
-
-    // Optimistic UI state update with local storage persistence
-    if (editingPrjId) {
-      updateProjectsState((prev) => prev.map((p) => (p.id === editingPrjId ? newPrj : p)));
-    } else {
-      updateProjectsState((prev) => [newPrj, ...prev]);
-    }
-    setShowPrjModal(false);
 
     try {
       const url = editingPrjId ? `/api/projects/${editingPrjId}` : '/api/projects';
       const method = editingPrjId ? 'PUT' : 'POST';
 
-      await fetch(url, {
+      const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: prjName,
           code: prjCode,
           description: prjDesc,
-          sectionId: matchedSec.id,
+          sectionId: matchedSec?.id,
           ownerId: matchedOwner?.id,
           status: prjStatus,
         }),
       });
+      const data: any = await res.json();
+      if (data.success) {
+        setShowPrjModal(false);
+        await fetchProjectsData();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('app_data_synced'));
+        }
+      } else {
+        alert(`ไม่สามารถบันทึกโครงการได้: ${data.error}`);
+      }
     } catch (e: any) {
-      console.warn('Backend API save project fallback to optimistic state', e);
+      console.error('Failed to save project', e);
     }
   };
 
   const handleDeleteProject = async (id: string, name: string) => {
     if (!confirm(`คุณต้องการลบโครงการ "${name}" ใช่หรือไม่?`)) return;
-    updateProjectsState((prev) => prev.filter((p) => p.id !== id));
     try {
-      await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+      const data: any = await res.json();
+      if (data.success) {
+        await fetchProjectsData();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('app_data_synced'));
+        }
+      }
     } catch (e) {
-      console.warn('Backend API delete project fallback to optimistic state', e);
+      console.error('Failed to delete project', e);
     }
   };
 
