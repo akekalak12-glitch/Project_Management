@@ -3,10 +3,20 @@ datasource db {
   url      = "file:./dev.db"
 }
 
+// Default client: plain Node.js runtime, native query engine.
+// Used for local `next dev` against prisma/dev.db (no driver adapter).
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
-  engineType      = "client"
+  provider = "prisma-client-js"
+}
+
+// Edge client: targets Cloudflare Workers (workerd) runtime, no native
+// engine binary, designed to be used together with a driver adapter
+// (@prisma/adapter-d1) bound to the D1 database. Used only in production
+// on Cloudflare Pages via src/lib/prisma.ts's edge branch.
+generator edgeClient {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma-edge"
+  runtime  = "workerd"
 }
 
 model Role {
