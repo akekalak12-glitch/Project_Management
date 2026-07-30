@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { LocalStorageManager } from '@/lib/storage-manager';
 
 export interface UserRole {
   id: string;
@@ -84,19 +85,23 @@ const DEFAULT_SUPER_ADMIN_USER: UserProfile = {
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Always default to logged in as Super Admin for direct access without login barrier!
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(DEFAULT_SUPER_ADMIN_USER);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(true);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [usersList, setUsersList] = useState<UserProfile[]>([DEFAULT_SUPER_ADMIN_USER]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/users');
-      if (res.ok) {
-        const data: any = await res.json();
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-          setUsersList(data.data);
+      const loadedUsers = LocalStorageManager.getUsers();
+      if (loadedUsers && loadedUsers.length > 0) {
+        setUsersList(loadedUsers);
+      } else {
+        const res = await fetch('/api/users');
+        if (res.ok) {
+          const data: any = await res.json();
+          if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+            setUsersList(data.data);
+          }
         }
       }
     } catch (e) {
@@ -108,16 +113,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const savedUserId = typeof window !== 'undefined' ? localStorage.getItem('active_user_id') : null;
       if (savedUserId) {
-        const res = await fetch(`/api/auth/me?userId=${savedUserId}`);
-        if (res.ok) {
-          const data: any = await res.json();
-          if (data.success && data.user) {
-            setCurrentUser(data.user);
+        const currentList = LocalStorageManager.getUsers();
+        const found = currentList.find((u: UserProfile) => u.id === savedUserId);
+        if (found) {
+          setCurrentUser(found);
+          setIsLoggedIn(true);
+        } else {
+          const res = await fetch(`/api/auth/me?userId=${savedUserId}`);
+          if (res.ok) {
+            const data: any = await res.json();
+            if (data.success && data.user) {
+              setCurrentUser(data.user);
+              setIsLoggedIn(true);
+            }
           }
         }
       }
     } catch (e) {
-      console.warn('API auth/me unreachable, maintaining default Super Admin profile', e);
+      console.warn('API auth/me unreachable', e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -127,18 +142,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, passwordInput?: string): Promise<boolean> => {
-    setIsLoggedIn(true);
-    setCurrentUser(DEFAULT_SUPER_ADMIN_USER);
-    return true;
+    const list = LocalStorageManager.getUsers();
+    const matched = list.find(
+      (u: UserProfile) => u.email.toLowerCase() === email.toLowerCase().trim()
+    ) || usersList.find(
+      (u: UserProfile) => u.email.toLowerCase() === email.toLowerCase().trim()
+    );
+
+    if (matched) {
+      setCurrentUser(matched);
+      setIsLoggedIn(true);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('active_user_id', matched.id);
+      }
+      return true;
+    }
+
+    // Default Fallback Super Admin Login if email matches
+    if (email.toLowerCase().trim() === DEFAULT_SUPER_ADMIN_USER.email.toLowerCase()) {
+      setCurrentUser(DEFAULT_SUPER_ADMIN_USER);
+      setIsLoggedIn(true);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('active_user_id', DEFAULT_SUPER_ADMIN_USER.id);
+      }
+      return true;
+    }
+
+    return false;
   };
 
   const logout = () => {
-    // Keep user logged in with Super Admin profile
-    setIsLoggedIn(true);
-    setCurrentUser(DEFAULT_SUPER_ADMIN_USER);
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('active_user_id');
+    }
   };
 
   const switchUserById = async (userId: string) => {
+    const list = LocalStorageManager.getUsers();
+    const matched = list.find((u: UserProfile) => u.id === userId);
+    if (matched) {
+      setCurrentUser(matched);
+      setIsLoggedIn(true);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('active_user_id', matched.id);
+      }
+      return;
+    }
     try {
       const res = await fetch(`/api/auth/me?userId=${userId}`);
       if (res.ok) {
@@ -146,6 +197,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (data.success && data.user) {
           setCurrentUser(data.user);
           setIsLoggedIn(true);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('active_user_id', data.user.id);
+          }
         }
       }
     } catch (e) {
@@ -160,14 +214,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isScrumMaster = roleKey === 'SCRUM_MASTER';
   const isStaff = roleKey === 'STAFF';
 
-  // Granular Menu Access Checker - Always grant full access by default
+  // Granular Menu Access Checker based on User Role & Menu Permissions
   const hasMenuAccess = (menuId: string, action: 'view' | 'edit' = 'view'): boolean => {
+    if (!currentUser) return false;
+    if (isExecutive) return true; // Super Admin has access to all menus
+
+    // Parse role menu permissions if available
+    if (currentUser.role?.menuPermissions) {
+      try {
+        const perms = JSON.parse(currentUser.role.menuPermissions);
+        if (perms[menuId]) {
+          return perms[menuId][action] === true;
+        }
+      } catch (e) {
+        // Fallback to role-level access
+      }
+    }
+
+    // Role-level default view rules
+    if (menuId === 'dashboard') return isExecutive || isAdvisor;
+    if (menuId === 'portfolio') return isExecutive || isAdvisor || isPM;
+    if (menuId === 'sprints') return isExecutive || isAdvisor || isPM || isScrumMaster;
+    if (menuId === 'kanban') return true;
+    if (menuId === 'masterdata') return isExecutive;
+    if (menuId === 'roles') return isExecutive;
+
     return true;
   };
 
-  const canManageMasterData = true;
-  const canCreateProject = true;
-  const canManageTeam = true;
+  const canManageMasterData = isExecutive;
+  const canCreateProject = isExecutive || isPM;
+  const canManageTeam = isExecutive || isPM;
 
   return (
     <AuthContext.Provider
