@@ -107,11 +107,30 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
       const loadedSprints = LocalStorageManager.getSprints();
       setSprints(loadedSprints);
       setExpandedSprintIds(loadedSprints.map((s: any) => s.id));
-      setProjects(LocalStorageManager.getProjects());
+      const localPrjs = LocalStorageManager.getProjects();
+      if (localPrjs && localPrjs.length > 0) setProjects(localPrjs);
       setBacklogItems(LocalStorageManager.getBacklogs());
     };
 
     syncData();
+
+    const fetchProjectsApi = async () => {
+      try {
+        const res = await fetch('/api/projects');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+            setProjects(data.data);
+            LocalStorageManager.setProjects(data.data);
+          }
+        }
+      } catch (e) {
+        console.warn('API fetch projects fallback to LocalStorageManager', e);
+      }
+    };
+
+    fetchProjectsApi();
+
     if (typeof window !== 'undefined') {
       window.addEventListener('app_data_synced', syncData);
     }
@@ -219,13 +238,18 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
     );
   };
 
-  // Sprint Handlers
   const handleOpenAddSprint = () => {
+    const currentPrjs = projects.length > 0 ? projects : LocalStorageManager.getProjects();
     setEditingSprintId(null);
     setSprintName('');
     setSprintGoal('');
     setSprintCadence('WEEKLY');
-    setSprintProjectId(projects[0]?.id || '');
+
+    const initialPrjId = (selectedProjectId && selectedProjectId !== 'ALL')
+      ? selectedProjectId
+      : (currentPrjs[0]?.id || '');
+
+    setSprintProjectId(initialPrjId);
     const todayStr = new Date().toISOString().slice(0, 10);
     const endStr = new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     setSprintStartDate(todayStr);
@@ -786,9 +810,9 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
             <div>
               <label className="text-xs font-medium text-slate-300 block mb-1">สังกัดโครงการ</label>
               <select
-                value={sprintProjectId}
+                value={sprintProjectId || (projects[0]?.id || '')}
                 onChange={(e) => setSprintProjectId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
               >
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
