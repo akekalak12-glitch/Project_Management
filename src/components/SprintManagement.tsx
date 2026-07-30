@@ -79,6 +79,28 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
   // Drill-down expanded Sprint rows state
   const [expandedSprintIds, setExpandedSprintIds] = useState<string[]>([]);
 
+  // New/Edit Sprint Modal State
+  const [showSprintModal, setShowSprintModal] = useState(false);
+  const [editingSprintId, setEditingSprintId] = useState<string | null>(null);
+  const [sprintName, setSprintName] = useState('');
+  const [sprintGoal, setSprintGoal] = useState('');
+  const [sprintCadence, setSprintCadence] = useState<'WEEKLY' | 'MONTHLY'>('WEEKLY');
+  const [sprintProjectId, setSprintProjectId] = useState('');
+  const [sprintStartDate, setSprintStartDate] = useState('');
+  const [sprintEndDate, setSprintEndDate] = useState('');
+  const [sprintStatus, setSprintStatus] = useState('ACTIVE');
+
+  // Backlog Modal State (Add/Edit) with Period Slot Selector
+  const [showBacklogModal, setShowBacklogModal] = useState(false);
+  const [editingBacklogId, setEditingBacklogId] = useState<string | null>(null);
+  const [backlogTitle, setBacklogTitle] = useState('');
+  const [backlogDesc, setBacklogDesc] = useState('');
+  const [backlogPriority, setBacklogPriority] = useState('MEDIUM');
+  const [backlogStartDate, setBacklogStartDate] = useState('');
+  const [backlogEndDate, setBacklogEndDate] = useState('');
+  const [targetSprintId, setTargetSprintId] = useState('');
+  const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(0);
+
   useEffect(() => {
     const loadedSprints = LocalStorageManager.getSprints();
     setSprints(loadedSprints);
