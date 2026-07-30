@@ -418,7 +418,13 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
     : usersList;
 
   const modalSprints = sprints.filter((s) => !modalProjectId || s.projectId === modalProjectId);
-  const modalBacklogs = backlogs.filter((b) => !modalSprintId || b.sprintId === modalSprintId);
+  const modalBacklogs = backlogs.filter((b) => {
+    if (!modalSprintId) return false;
+    const matchSprintId = b.sprintId === modalSprintId || b.sprint?.id === modalSprintId;
+    const matchedSprintObj = sprints.find((s) => s.id === modalSprintId);
+    const matchSprintName = matchedSprintObj && b.sprint?.name === matchedSprintObj.name;
+    return matchSprintId || matchSprintName;
+  });
 
   // Projects list to render (Only projects with at least one Sprint created)
   const displayProjects = selectedProjectId === 'ALL'
