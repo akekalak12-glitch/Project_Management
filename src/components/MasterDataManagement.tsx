@@ -17,6 +17,21 @@ export default function MasterDataManagement({ focusSection = 'master' }: Master
   const [roles, setRoles] = useState<any[]>(SEED_ROLES);
   const [loading, setLoading] = useState(false);
 
+  // Section Modal State
+  const [showSecModal, setShowSecModal] = useState(false);
+  const [editingSecId, setEditingSecId] = useState<string | null>(null);
+  const [secName, setSecName] = useState('');
+  const [secCode, setSecCode] = useState('');
+  const [secDesc, setSecDesc] = useState('');
+
+  // User Modal State
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [userRoleId, setUserRoleId] = useState('');
+  const [userSecId, setUserSecId] = useState('');
+
   useEffect(() => {
     setUsers(LocalStorageManager.getUsers());
     setSections(LocalStorageManager.getSections());
