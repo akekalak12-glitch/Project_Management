@@ -1,12 +1,12 @@
 import { SEED_USERS, SEED_SECTIONS, SEED_ROLES, SEED_PROJECTS, SEED_SPRINTS, SEED_BACKLOGS, SEED_TASKS } from './data-store';
 
 const STORAGE_KEYS = {
-  USERS: 'pm_local_users_v1',
-  SECTIONS: 'pm_local_sections_v1',
-  PROJECTS: 'pm_local_projects_v1',
-  SPRINTS: 'pm_local_sprints_v1',
-  BACKLOGS: 'pm_local_backlogs_v1',
-  TASKS: 'pm_local_tasks_v1',
+  USERS: 'pm_local_users_v2',
+  SECTIONS: 'pm_local_sections_v2',
+  PROJECTS: 'pm_local_projects_v2',
+  SPRINTS: 'pm_local_sprints_v2',
+  BACKLOGS: 'pm_local_backlogs_v2',
+  TASKS: 'pm_local_tasks_v2',
 };
 
 // Helper for browser local storage persistence with safe SSR hydration
