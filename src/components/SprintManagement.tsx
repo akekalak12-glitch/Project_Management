@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import SaveAndSyncButton from './SaveAndSyncButton';
 import {
   Calendar,
   Plus,
@@ -102,11 +103,23 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(0);
 
   useEffect(() => {
-    const loadedSprints = LocalStorageManager.getSprints();
-    setSprints(loadedSprints);
-    setExpandedSprintIds(loadedSprints.map((s: any) => s.id));
-    setProjects(LocalStorageManager.getProjects());
-    setBacklogItems(LocalStorageManager.getBacklogs());
+    const syncData = () => {
+      const loadedSprints = LocalStorageManager.getSprints();
+      setSprints(loadedSprints);
+      setExpandedSprintIds(loadedSprints.map((s: any) => s.id));
+      setProjects(LocalStorageManager.getProjects());
+      setBacklogItems(LocalStorageManager.getBacklogs());
+    };
+
+    syncData();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('app_data_synced', syncData);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('app_data_synced', syncData);
+      }
+    };
   }, []);
 
   const updateSprintsState = (newSprints: SprintItem[] | ((prev: SprintItem[]) => SprintItem[])) => {
@@ -446,17 +459,18 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <SaveAndSyncButton />
           {canCreateProject && (
             <button
               onClick={handleOpenAddSprint}
-              className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-all"
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-all cursor-pointer"
             >
               <Calendar className="w-4 h-4 text-blue-400" /> + ตั้ง Sprint ใหม่
             </button>
           )}
           <button
             onClick={() => handleOpenAddBacklog()}
-            className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-purple-600/20 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-purple-600/20 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" /> + เพิ่ม Backlog
           </button>

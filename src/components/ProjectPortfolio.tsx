@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import TeamFormationModal from './TeamFormationModal';
 import ProjectReportModal from './ProjectReportModal';
+import SaveAndSyncButton from './SaveAndSyncButton';
 import {
   FolderKanban,
   Search,
@@ -45,9 +46,21 @@ export default function ProjectPortfolio() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setProjects(LocalStorageManager.getProjects());
-    setSections(LocalStorageManager.getSections());
-    setProjectOwners(LocalStorageManager.getUsers());
+    const syncData = () => {
+      setProjects(LocalStorageManager.getProjects());
+      setSections(LocalStorageManager.getSections());
+      setProjectOwners(LocalStorageManager.getUsers());
+    };
+
+    syncData();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('app_data_synced', syncData);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('app_data_synced', syncData);
+      }
+    };
   }, []);
 
   const updateProjectsState = (newPrjs: ProjectItem[] | ((prev: ProjectItem[]) => ProjectItem[])) => {
@@ -213,14 +226,17 @@ export default function ProjectPortfolio() {
           </p>
         </div>
 
-        {canCreateProject && (
-          <button
-            onClick={handleOpenAddProject}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-blue-600/20 transition-all self-start md:self-auto"
-          >
-            <Plus className="w-4 h-4" /> สร้างโครงการใหม่ (Add Project)
-          </button>
-        )}
+        <div className="flex items-center gap-2 self-start md:self-auto">
+          <SaveAndSyncButton />
+          {canCreateProject && (
+            <button
+              onClick={handleOpenAddProject}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-blue-600/20 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> สร้างโครงการใหม่ (Add Project)
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filter and Search Bar */}

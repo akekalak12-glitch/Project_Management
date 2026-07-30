@@ -23,13 +23,16 @@ import {
   Edit2,
   Trash2,
   Inbox,
-  Link2,
-  Users,
-  CheckSquare,
-  Square,
   RefreshCw,
   FolderKanban,
+  CheckSquare,
+  Square,
+  AlertCircle,
+  Link2,
+  Layers,
+  Users,
 } from 'lucide-react';
+import SaveAndSyncButton from './SaveAndSyncButton';
 
 interface TaskAssigneeItem {
   userId: string;
@@ -80,11 +83,23 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
   const [usersList, setUsersList] = useState<any[]>([]);
 
   useEffect(() => {
-    setTasks(LocalStorageManager.getTasks());
-    setSprints(LocalStorageManager.getSprints());
-    setProjects(LocalStorageManager.getProjects());
-    setBacklogs(LocalStorageManager.getBacklogs());
-    setUsersList(LocalStorageManager.getUsers());
+    const syncData = () => {
+      setTasks(LocalStorageManager.getTasks());
+      setSprints(LocalStorageManager.getSprints());
+      setProjects(LocalStorageManager.getProjects());
+      setBacklogs(LocalStorageManager.getBacklogs());
+      setUsersList(LocalStorageManager.getUsers());
+    };
+
+    syncData();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('app_data_synced', syncData);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('app_data_synced', syncData);
+      }
+    };
   }, []);
 
   const updateTasksState = (newTasks: TaskItem[] | ((prev: TaskItem[]) => TaskItem[])) => {
@@ -412,6 +427,9 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
         </div>
 
         <div className="flex items-center gap-2 self-start md:self-auto">
+          {/* Global Save & Sync Button */}
+          <SaveAndSyncButton />
+
           {/* Refresh Sprint Data Button */}
           <button
             onClick={() => fetchBoardData(true)}
@@ -474,9 +492,9 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
               <select
                 value={selectedSprintId}
                 onChange={(e) => setSelectedSprintId(e.target.value)}
-                className="w-full bg-slate-950 border border-blue-500/40 text-blue-200 py-2.5 pl-3 pr-8 rounded-xl appearance-none text-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-md"
+                className="w-full bg-slate-950 border border-slate-800 text-slate-200 py-2 pl-3 pr-8 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer appearance-none truncate"
               >
-                <option value="ALL">-- แสดงการ์ดงานทุก Sprint --</option>
+                <option value="ALL">-- แสดงทุก Sprint ของโครงการ --</option>
                 {availableSprints.map((s) => (
                   <option key={s.id} value={s.id}>
                     [{s.project?.code || 'โครงการ'}] {s.name} ({s.cadence === 'WEEKLY' ? 'สัปดาห์' : 'เดือน'})
@@ -514,6 +532,16 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
       ) : (
         <div className="space-y-10">
           {displayProjects.map((proj) => {
+            const projSprints = sprints.filter((s) => s.projectId === proj.id);
+            const projSprintIds = new Set(projSprints.map((s) => s.id));
+
+            // Backlogs associated with this project's sprints
+            const projBacklogs = backlogs.filter(
+              (b) =>
+                projSprintIds.has(b.sprintId) &&
+                (selectedSprintId === 'ALL' || b.sprintId === selectedSprintId)
+            );
+
             // Filter tasks strictly for this project
             const projTasks = tasks.filter((t) => {
               const matchesProj = t.projectId === proj.id || t.project?.name === proj.name;
@@ -521,7 +549,35 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
               return matchesProj && matchesSprint;
             });
 
-            const projSprints = sprints.filter((s) => s.projectId === proj.id);
+            // Convert Backlog Items without explicit tasks into synthetic Kanban cards
+            const existingBacklogIdsInTasks = new Set(projTasks.map((t) => t.backlogItemId).filter(Boolean));
+            const syntheticBacklogCards: TaskItem[] = projBacklogs
+              .filter((b) => !existingBacklogIdsInTasks.has(b.id))
+              .map((b) => {
+                let mappedStatus: 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' = 'TODO';
+                if (b.status === 'IN_PROGRESS') mappedStatus = 'IN_PROGRESS';
+                if (b.status === 'FLEXIBLE_REVISED') mappedStatus = 'IN_REVIEW';
+                if (b.status === 'SUCCESS') mappedStatus = 'DONE';
+
+                const parentSprint = projSprints.find((s) => s.id === b.sprintId);
+
+                return {
+                  id: `backlog-derived-${b.id}`,
+                  title: `📌 ${b.title}`,
+                  description: b.description || `รายการ Backlog จาก ${parentSprint?.name || 'Sprint'}`,
+                  priority: (b.priority as any) || 'MEDIUM',
+                  status: mappedStatus,
+                  projectId: proj.id,
+                  sprintId: b.sprintId,
+                  backlogItemId: b.id,
+                  assigneeId: b.assigneeId || b.assignee?.id || proj.ownerId,
+                  assignee: b.assignee || proj.owner,
+                  project: { name: proj.name, code: proj.code },
+                  backlogItem: { title: b.title },
+                };
+              });
+
+            const allProjectCards = [...projTasks, ...syntheticBacklogCards];
 
             return (
               <div key={proj.id} className="bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-lg">
@@ -546,7 +602,7 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
 
                   <div className="flex items-center gap-3 shrink-0">
                     <span className="text-xs text-slate-400 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800 font-semibold">
-                      {projTasks.length} Tasks ({projSprints.length} Sprints)
+                      {allProjectCards.length} Cards ({projBacklogs.length} Backlogs)
                     </span>
                     <button
                       onClick={() => handleOpenAddTaskModal(proj.id)}

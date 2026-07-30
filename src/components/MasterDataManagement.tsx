@@ -6,6 +6,7 @@ import { UserProfile, Section } from '@/lib/auth-context';
 
 import { SEED_ROLES } from '@/lib/data-store';
 import { LocalStorageManager } from '@/lib/storage-manager';
+import SaveAndSyncButton from './SaveAndSyncButton';
 
 interface MasterDataProps {
   focusSection?: 'master' | 'roles';
@@ -33,8 +34,20 @@ export default function MasterDataManagement({ focusSection = 'master' }: Master
   const [userSecId, setUserSecId] = useState('');
 
   useEffect(() => {
-    setUsers(LocalStorageManager.getUsers());
-    setSections(LocalStorageManager.getSections());
+    const syncData = () => {
+      setUsers(LocalStorageManager.getUsers());
+      setSections(LocalStorageManager.getSections());
+    };
+
+    syncData();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('app_data_synced', syncData);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('app_data_synced', syncData);
+      }
+    };
   }, []);
 
   const updateUsersState = (newUsers: UserProfile[] | ((prev: UserProfile[]) => UserProfile[])) => {
@@ -202,16 +215,17 @@ export default function MasterDataManagement({ focusSection = 'master' }: Master
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <SaveAndSyncButton />
           <button
             onClick={handleOpenAddSec}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-all"
+            className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4 text-blue-400" /> เพิ่มส่วนงาน (Section)
           </button>
           <button
             onClick={handleOpenAddUser}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-blue-600/20 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-blue-600/20 transition-all cursor-pointer"
           >
             <UserPlus className="w-4 h-4" /> เพิ่มพนักงาน/เจ้าหน้าที่ (User)
           </button>

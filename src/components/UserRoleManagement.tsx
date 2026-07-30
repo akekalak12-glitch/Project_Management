@@ -21,6 +21,7 @@ import {
 import { UserProfile, Section } from '@/lib/auth-context';
 import { SEED_ROLES } from '@/lib/data-store';
 import { LocalStorageManager } from '@/lib/storage-manager';
+import SaveAndSyncButton from './SaveAndSyncButton';
 
 interface RoleItem {
   id: string;
@@ -65,14 +66,26 @@ export default function UserRoleManagement() {
   const [userSecId, setUserSecId] = useState('');
 
   useEffect(() => {
-    setUsers(LocalStorageManager.getUsers());
-    setSections(LocalStorageManager.getSections());
-    setRoles(SEED_ROLES);
-    if (!selectedRoleId && SEED_ROLES.length > 0) {
-      setSelectedRoleId(SEED_ROLES[0].id);
-      initMatrixForRole(SEED_ROLES[0]);
+    const syncData = () => {
+      setUsers(LocalStorageManager.getUsers());
+      setSections(LocalStorageManager.getSections());
+      setRoles(SEED_ROLES);
+      if (!selectedRoleId && SEED_ROLES.length > 0) {
+        setSelectedRoleId(SEED_ROLES[0].id);
+        initMatrixForRole(SEED_ROLES[0]);
+      }
+      setLoading(false);
+    };
+
+    syncData();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('app_data_synced', syncData);
     }
-    setLoading(false);
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('app_data_synced', syncData);
+      }
+    };
   }, []);
 
   // Initialize Permission Matrix for Selected Role
@@ -233,12 +246,15 @@ export default function UserRoleManagement() {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenAddUser}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-blue-600/20 transition-all self-start md:self-auto cursor-pointer"
-        >
-          <UserPlus className="w-4 h-4" /> + เพิ่มบัญชีผู้ใช้งานใหม่
-        </button>
+        <div className="flex items-center gap-2 self-start md:self-auto">
+          <SaveAndSyncButton />
+          <button
+            onClick={handleOpenAddUser}
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-blue-600/20 transition-all cursor-pointer"
+          >
+            <UserPlus className="w-4 h-4" /> + เพิ่มบัญชีผู้ใช้งานใหม่
+          </button>
+        </div>
       </div>
 
       {/* Sync Success Status Banner */}
