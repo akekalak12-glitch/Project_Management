@@ -239,7 +239,7 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
     setShowTaskModal(true);
   };
 
-  // Cascading Project Change inside Modal
+    // Cascading Project Change inside Modal
   const handleModalProjectChange = (projId: string) => {
     setModalProjectId(projId);
     const projSprints = sprints.filter((s) => s.projectId === projId);
@@ -247,13 +247,13 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
     setModalSprintId(firstSprintId);
 
     const sprintBacklogs = backlogs.filter((b) => b.sprintId === firstSprintId);
-    setModalBacklogId(sprintBacklogs[0]?.id || '');
+    setModalBacklogId(sprintBacklogs[0]?.id || 'AUTO_CREATE');
   };
 
   const handleModalSprintChange = (sprintId: string) => {
     setModalSprintId(sprintId);
     const sprintBacklogs = backlogs.filter((b) => b.sprintId === sprintId);
-    setModalBacklogId(sprintBacklogs[0]?.id || '');
+    setModalBacklogId(sprintBacklogs[0]?.id || 'AUTO_CREATE');
   };
 
   // Toggle Co-Assignee Checkbox Selection
@@ -270,11 +270,12 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
     setTaskDesc(task.description || '');
     setTaskPriority(task.priority);
     setTaskStatus(task.status);
+    setTaskDueDate(task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : '');
 
     const taskProjId = task.projectId || (sprints.find((s) => s.id === task.sprintId)?.projectId) || projects[0]?.id || '';
     setModalProjectId(taskProjId);
     setModalSprintId(task.sprintId || '');
-    setModalBacklogId(task.backlogItemId || '');
+    setModalBacklogId(task.backlogItemId || 'AUTO_CREATE');
 
     if (task.assignees && task.assignees.length > 0) {
       setSelectedAssigneeIds(task.assignees.map((a) => a.userId));
@@ -303,15 +304,39 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
     const matchedProject = projects.find((p) => p.id === modalProjectId) || projects[0];
     const matchedAssignee = usersList.find((u) => selectedAssigneeIds.includes(u.id)) || usersList[0] || currentUser;
 
+    let finalBacklogId = modalBacklogId;
+
+    // Auto-generate a Backlog Item if modalBacklogId is empty or AUTO_CREATE
+    if ((!modalBacklogId || modalBacklogId === 'AUTO_CREATE') && modalSprintId) {
+      const parentSprint = sprints.find((s) => s.id === modalSprintId);
+      const newBacklogItem = {
+        id: `backlog-${Date.now()}`,
+        sprintId: modalSprintId,
+        title: taskTitle,
+        description: taskDesc || `Backlog Item ที่สร้างจากการ์ดงาน Task`,
+        priority: taskPriority,
+        status: taskStatus === 'DONE' ? 'SUCCESS' : (taskStatus === 'IN_PROGRESS' ? 'IN_PROGRESS' : 'PLANNED'),
+        assigneeId: matchedAssignee?.id,
+        assignee: matchedAssignee,
+        sprint: parentSprint ? { id: parentSprint.id, name: parentSprint.name, project: matchedProject } : undefined,
+      };
+
+      const updatedBacklogs = [newBacklogItem, ...backlogs];
+      setBacklogs(updatedBacklogs);
+      LocalStorageManager.setBacklogs(updatedBacklogs);
+      finalBacklogId = newBacklogItem.id;
+    }
+
     const newTaskObj: TaskItem = {
       id: editingTaskId || `task-${Date.now()}`,
       title: taskTitle,
       description: taskDesc,
       priority: taskPriority,
       status: taskStatus,
+      dueDate: taskDueDate || undefined,
       projectId: modalProjectId || matchedProject?.id,
       sprintId: modalSprintId,
-      backlogItemId: modalBacklogId,
+      backlogItemId: finalBacklogId && finalBacklogId !== 'AUTO_CREATE' ? finalBacklogId : undefined,
       assigneeId: matchedAssignee?.id,
       assignee: matchedAssignee,
       project: matchedProject ? { name: matchedProject.name, code: matchedProject.code } : undefined,
@@ -821,20 +846,23 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
 
             {/* 3. Select Backlog */}
             <div>
-              <label className="text-xs font-bold text-purple-400 block mb-1">
-                3. เลือก Backlog ใน Sprint นี้ ({modalBacklogs.length} รายการ):
+              <label className="text-xs font-bold text-purple-400 mb-1 flex items-center justify-between">
+                <span>3. เลือก Backlog ใน Sprint นี้ ({modalBacklogs.length} รายการ):</span>
+                <span className="text-[10px] text-purple-300 font-semibold">
+                  {modalBacklogs.length === 0 ? '✨ สร้าง Backlog อัตโนมัติ' : 'เลือก Backlog หรือสร้างใหม่'}
+                </span>
               </label>
               <select
                 value={modalBacklogId}
                 onChange={(e) => setModalBacklogId(e.target.value)}
                 className="w-full bg-slate-950 border border-purple-500/40 text-purple-200 font-bold rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer shadow-md"
               >
-                {modalBacklogs.length === 0 && (
-                  <option value="">-- ไม่พบ Backlog ใน Sprint นี้ (สร้างแบบอิสระ) --</option>
-                )}
+                <option value="AUTO_CREATE">
+                  ➕ สร้างเป็น Backlog Item ใหม่ใน Sprint นี้โดยอัตโนมัติ
+                </option>
                 {modalBacklogs.map((b) => (
                   <option key={b.id} value={b.id}>
-                    📍 {b.title}
+                    📍 {b.title} ({b.status})
                   </option>
                 ))}
               </select>
