@@ -38,7 +38,11 @@ export default function ExecutiveDashboard() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setProjects(LocalStorageManager.getProjects());
+    const syncData = () => {
+      setProjects(LocalStorageManager.getProjects());
+    };
+
+    syncData();
 
     async function loadData() {
       try {
@@ -59,6 +63,15 @@ export default function ExecutiveDashboard() {
       }
     }
     loadData();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('app_data_synced', syncData);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('app_data_synced', syncData);
+      }
+    };
   }, []);
 
   const isFullAccessUser = isExecutive || isAdvisor;

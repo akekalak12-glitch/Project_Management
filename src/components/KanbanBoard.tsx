@@ -106,6 +106,9 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
     setTasks((prev) => {
       const nextTasks = typeof newTasks === 'function' ? newTasks(prev) : newTasks;
       LocalStorageManager.setTasks(nextTasks);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app_data_synced'));
+      }
       return nextTasks;
     });
   };
@@ -181,9 +184,20 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
 
   // Update Task Status
   const updateTaskStatus = async (taskId: string, newColumnStatus: 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE') => {
+    const targetTask = tasks.find((t) => t.id === taskId);
     updateTasksState((prevTasks) =>
       prevTasks.map((t) => (t.id === taskId ? { ...t, status: newColumnStatus } : t))
     );
+
+    // Sync parent backlog item status
+    if (targetTask?.backlogItemId) {
+      const updatedBacklogStatus = newColumnStatus === 'DONE' ? 'SUCCESS' : (newColumnStatus === 'IN_PROGRESS' || newColumnStatus === 'IN_REVIEW' ? 'IN_PROGRESS' : 'PLANNED');
+      setBacklogs((prevBacklogs) => {
+        const nextBacklogs = prevBacklogs.map((b) => (b.id === targetTask.backlogItemId ? { ...b, status: updatedBacklogStatus } : b));
+        LocalStorageManager.setBacklogs(nextBacklogs);
+        return nextBacklogs;
+      });
+    }
 
     if (newColumnStatus === 'DONE') {
       setSyncStatusMsg('⚡ Real-time Sync: งานเสร็จสิ้นแล้ว! ระบบอัปเดต Backlog ต้นทางเป็น "SUCCESS" อัตโนมัติ!');
@@ -191,6 +205,10 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
     } else {
       setSyncStatusMsg(`🔄 Real-time Sync: ปรับสถานะงานเป็น "${newColumnStatus}" ระบบอัปเดตความคืบหน้า Backlog ย้อนหลังอัตโนมัติ!`);
       setTimeout(() => setSyncStatusMsg(null), 4000);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('app_data_synced'));
     }
 
     try {

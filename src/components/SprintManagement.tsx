@@ -145,6 +145,9 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
     setSprints((prev) => {
       const nextSprints = typeof newSprints === 'function' ? newSprints(prev) : newSprints;
       LocalStorageManager.setSprints(nextSprints);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app_data_synced'));
+      }
       return nextSprints;
     });
   };
@@ -153,6 +156,9 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
     setBacklogItems((prev) => {
       const nextBacklogs = typeof newBacklogs === 'function' ? newBacklogs(prev) : newBacklogs;
       LocalStorageManager.setBacklogs(nextBacklogs);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app_data_synced'));
+      }
       return nextBacklogs;
     });
   };
