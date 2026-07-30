@@ -7,4 +7,4 @@ pages_build_output_dir = ".vercel/output/static"
 [[d1_databases]]
 binding = "DB"
 database_name = "pm-database"
-database_id = "678c473d-ad7c-4512-9d8c-3e13b40e55cb"
+database_id = "34de392b-b365-4dfe-b685-909bf9bab732"
