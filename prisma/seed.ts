@@ -18,11 +18,11 @@ async function main() {
 
   // 2. Create Roles
   const rolesData = [
-    { key: 'SUPER_ADMIN', title: 'ผู้อำนวยการกอง', permissionLevel: 100 },
-    { key: 'ADVISOR', title: 'ผู้เชี่ยวชาญ', permissionLevel: 80 },
-    { key: 'PROJECT_OWNER', title: 'ผู้อำนวยการส่วน', permissionLevel: 60 },
-    { key: 'SCRUM_MASTER', title: 'หัวหน้าฝ่าย', permissionLevel: 40 },
-    { key: 'STAFF', title: 'เจ้าหน้าที่ปฏิบัติงาน', permissionLevel: 20 },
+    { id: '227edd5c-4bd0-4d2c-b804-82f04fda667f', key: 'SUPER_ADMIN', title: 'ผู้อำนวยการกอง', permissionLevel: 100 },
+    { id: '3b18d23b-06c4-4bad-87d7-599e49146a89', key: 'ADVISOR', title: 'ผู้เชี่ยวชาญ', permissionLevel: 80 },
+    { id: '3e5286ff-6c56-4a40-af31-5a29ccf3b98e', key: 'PROJECT_OWNER', title: 'ผู้อำนวยการส่วน', permissionLevel: 60 },
+    { id: '1f7d4b43-4ccf-4126-a661-e5e6331121aa', key: 'SCRUM_MASTER', title: 'หัวหน้าฝ่าย', permissionLevel: 40 },
+    { id: '732ce5ba-a573-4dd4-9543-a8989554c69a', key: 'STAFF', title: 'เจ้าหน้าที่ปฏิบัติงาน', permissionLevel: 20 },
   ];
 
   const rolesMap: Record<string, string> = {};
@@ -31,29 +31,31 @@ async function main() {
     rolesMap[r.key] = role.id;
   }
 
-  // 3. Create Sections
+  // 3. Create Sections matching data-store.ts / Master Data 100%
   const sectionsData = [
-    { name: 'ส่วนนวัตกรรมดิจิทัล', code: 'DIGITAL', description: 'พัฒนานวัตกรรมและเทคโนโลยีดิจิทัลองค์กร' },
-    { name: 'ส่วนโครงสร้างพื้นฐาน', code: 'INFRA', description: 'ดูแลระบบเครือข่าย คลาวด์ และฮาร์ดแวร์' },
-    { name: 'ส่วนการจัดการข้อมูล', code: 'DATA', description: 'บริหารจัดการคลังข้อมูล Big Data และ AI' },
-    { name: 'ส่วนความมั่นคงปลอดภัย', code: 'SEC', description: 'ดูแลไซเบอร์ซีเคียวริตี้ และการกำกับดูแล' },
+    { id: '87eddf4e-7d77-4caf-acc5-9e4e1e2d5f22', name: 'ส่วนจัดการฐานข้อมูล', code: 'จฐ', description: 'บริหารจัดการฐานข้อมูล' },
+    { id: 'b9ae7cbd-e2b1-436a-86d8-8656716ef176', name: 'ส่วนเลขานุการคณะกรรมการประเมินราคาทรัพย์สินเพื่อประโยชน์แห่งรัฐ', code: 'ลป', description: 'งานเลขานุการและประเมินราคาทรัพย์สิน' },
+    { id: 'f01452e1-e9c9-4454-be82-28771e9f37d4', name: 'ส่วนวิจัยและพัฒนามาตรฐานการประเมินราคาทรัพย์สิน', code: 'วป', description: 'งานวิจัยและพัฒนามาตรฐาน' },
+    { id: 'b053e534-2b22-475f-81f8-f2da5e575e30', name: 'ศูนย์บริหารจัดการราคาประเมินทรัพย์สินแห่งชาติ', code: 'ศป', description: 'บริหารจัดการราคาประเมินแห่งชาติ' },
+    { id: 'e22d3585-fee2-4db2-954c-a3505d5436b8', name: 'ฝ่ายบริหารงานทั่วไป', code: 'บป', description: 'งานสารบรรณและบริหารงานทั่วไป' },
   ];
 
-  const sectionsMap: Record<string, string> = {};
+  const sectionsList: any[] = [];
   for (const s of sectionsData) {
     const sec = await prisma.section.create({ data: s });
-    sectionsMap[s.code] = sec.id;
+    sectionsList.push(sec);
   }
 
   // 4. Create Users
   const users = [];
   const admin = await prisma.user.create({
     data: {
-      name: 'ดร. สมชาย วิเศษกุล (ผอ.กอง)',
-      email: 'somchai.director@organization.go.th',
+      id: '8b1f19e0-959c-4c6f-9f4e-fcc4ee8466d4',
+      name: 'นายเอกลักษณ์ เฉลิมชีพ (ผอ.กอง)',
+      email: 'akekalakch@treasury.go.th',
       roleId: rolesMap['SUPER_ADMIN'],
-      sectionId: sectionsMap['DIGITAL'],
-      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Somchai',
+      sectionId: sectionsList[0].id,
+      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=SuperAdmin',
     },
   });
   users.push(admin);
@@ -63,26 +65,26 @@ async function main() {
       name: 'อาจารย์ วิทยา ปัญญาประเสริฐ (ผู้เชี่ยวชาญ)',
       email: 'wittaya.advisor@organization.go.th',
       roleId: rolesMap['ADVISOR'],
-      sectionId: sectionsMap['DATA'],
+      sectionId: sectionsList[2].id,
       avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Wittaya',
     },
   });
   users.push(advisor);
 
   const poNames = [
-    { name: 'นาย ณรงค์ศักดิ์ สุขเจริญ (ผอ.ส่วนนวัตกรรม)', code: 'DIGITAL' },
-    { name: 'นางสาว พิมลพรรณ วงศ์สว่าง (ผอ.ส่วนไอทีโครงสร้าง)', code: 'INFRA' },
-    { name: 'นาย ชัยวัฒน์ รัตนมนตรี (ผอ.ส่วนข้อมูลองค์กร)', code: 'DATA' },
-    { name: 'ดร. กรกช สุวรรณภูมิ (ผอ.ส่วนไซเบอร์ซีเคียวริตี้)', code: 'SEC' },
+    { name: 'นาย ณรงค์ศักดิ์ สุขเจริญ (ผอ.ส่วนจัดการฐานข้อมูล)', secId: sectionsList[0].id },
+    { name: 'นางสาว พิมลพรรณ วงศ์สว่าง (ผอ.ส่วนเลขานุการฯ)', secId: sectionsList[1].id },
+    { name: 'นาย ชัยวัฒน์ รัตนมนตรี (ผอ.ส่วนวิจัยและพัฒนาฯ)', secId: sectionsList[2].id },
+    { name: 'ดร. กรกช สุวรรณภูมิ (ผอ.ศูนย์บริหารจัดการฯ)', secId: sectionsList[3].id },
   ];
   const pos = [];
   for (let i = 0; i < poNames.length; i++) {
     const po = await prisma.user.create({
       data: {
         name: poNames[i].name,
-        email: `po.${poNames[i].code.toLowerCase()}@organization.go.th`,
+        email: `po.${i}@treasury.go.th`,
         roleId: rolesMap['PROJECT_OWNER'],
-        sectionId: sectionsMap[poNames[i].code],
+        sectionId: poNames[i].secId,
         avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=PO_${i}`,
       },
     });
@@ -93,24 +95,23 @@ async function main() {
   const sm = await prisma.user.create({
     data: {
       name: 'นาย ศุภชัย ตั้งใจมั่น (หัวหน้าฝ่าย/Scrum Master)',
-      email: 'suphachai.sm@organization.go.th',
+      email: 'suphachai.sm@treasury.go.th',
       roleId: rolesMap['SCRUM_MASTER'],
-      sectionId: sectionsMap['DIGITAL'],
+      sectionId: sectionsList[0].id,
       avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Suphachai',
     },
   });
   users.push(sm);
 
   const staffList = [];
-  const secKeys = ['DIGITAL', 'INFRA', 'DATA', 'SEC'];
   for (let i = 1; i <= 53; i++) {
-    const secCode = secKeys[(i - 1) % 4];
+    const targetSec = sectionsList[(i - 1) % sectionsList.length];
     const staff = await prisma.user.create({
       data: {
-        name: `เจ้าหน้าที่ ${i} (เจ้าหน้าที่ ${secCode})`,
-        email: `staff.${i}@organization.go.th`,
+        name: `เจ้าหน้าที่ ${i} (${targetSec.name})`,
+        email: `staff.${i}@treasury.go.th`,
         roleId: rolesMap['STAFF'],
-        sectionId: sectionsMap[secCode],
+        sectionId: targetSec.id,
         avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=Staff_${i}`,
       },
     });
@@ -120,30 +121,11 @@ async function main() {
 
   // 5. Create Projects
   const projectTitles = [
-    { name: 'โครงการพัฒนาระบบ Portal องค์กรยุคใหม่', code: 'PRJ-DIG-01', sec: 'DIGITAL', owner: pos[0] },
-    { name: 'โครงการระบบ Smart Workflow & E-Document', code: 'PRJ-DIG-02', sec: 'DIGITAL', owner: pos[0] },
-    { name: 'โครงการ AI Assistance สำหรับการบริการประชาชน', code: 'PRJ-DIG-03', sec: 'DIGITAL', owner: pos[0] },
-    { name: 'โครงการระบบ Mobile App ให้บริการภายใน', code: 'PRJ-DIG-04', sec: 'DIGITAL', owner: pos[0] },
-    { name: 'โครงการยกระดับ UX/UI ของระบบงานเดิม', code: 'PRJ-DIG-05', sec: 'DIGITAL', owner: pos[0] },
-
-    { name: 'โครงการย้ายระบบงานเข้าสู่ Hybrid Cloud', code: 'PRJ-INF-01', sec: 'INFRA', owner: pos[1] },
-    { name: 'โครงการปรับปรุงระบบเครือข่ายความเร็วสูง', code: 'PRJ-INF-02', sec: 'INFRA', owner: pos[1] },
-    { name: 'โครงการจัดทำ Data Center สำรอง (DR Site)', code: 'PRJ-INF-03', sec: 'INFRA', owner: pos[1] },
-    { name: 'โครงการติดตั้งระบบ Virtual Desktop (VDI)', code: 'PRJ-INF-04', sec: 'INFRA', owner: pos[1] },
-    { name: 'โครงการจัดหาคอมพิวเตอร์และ Server ประจำปี', code: 'PRJ-INF-05', sec: 'INFRA', owner: pos[1] },
-
-    { name: 'โครงการจัดทำ Enterprise Data Lakehouse', code: 'PRJ-DAT-01', sec: 'DATA', owner: pos[2] },
-    { name: 'โครงการพัฒนา Dashboard ข้อมูลภาพรวมผู้บริหาร', code: 'PRJ-DAT-02', sec: 'DATA', owner: pos[2] },
-    { name: 'โครงการวิเคราะห์ข้อมูลทำนายการใช้บริการ (Predictive Analytics)', code: 'PRJ-DAT-03', sec: 'DATA', owner: pos[2] },
-    { name: 'โครงการธรรมาภิบาลข้อมูลองค์กร (Data Governance)', code: 'PRJ-DAT-04', sec: 'DATA', owner: pos[2] },
-    { name: 'โครงการเชื่อมโยงข้อมูลระหว่างหน่วยงาน (API Gateway)', code: 'PRJ-DAT-05', sec: 'DATA', owner: pos[2] },
-
-    { name: 'โครงการพัฒนาระบบ Zero Trust Architecture', code: 'PRJ-SEC-01', sec: 'SEC', owner: pos[3] },
-    { name: 'โครงการทดสอบการเจาะระบบ (Penetration Testing)', code: 'PRJ-SEC-02', sec: 'SEC', owner: pos[3] },
-    { name: 'โครงการยกระดับมาตรฐาน ISO 27001:2022', code: 'PRJ-SEC-03', sec: 'SEC', owner: pos[3] },
-    { name: 'โครงการติดตั้งระบบ SOC 24/7 Monitoring', code: 'PRJ-SEC-04', sec: 'SEC', owner: pos[3] },
-    { name: 'โครงการอบรม Cybersecurity Awareness ประจำปี', code: 'PRJ-SEC-05', sec: 'SEC', owner: pos[3] },
-    { name: 'โครงการจัดการสิทธิ์การเข้าถึงแบบ IAM Enterprise', code: 'PRJ-SEC-06', sec: 'SEC', owner: pos[3] },
+    { name: 'ระบบบริหารจัดการฐานข้อมูลราคาทรัพย์สินดิจิทัล', code: 'PRJ-DATA-01', secId: sectionsList[0].id, owner: pos[0] },
+    { name: 'ระบบสารสนเทศส่วนเลขานุการประเมินราคาแห่งรัฐ', code: 'PRJ-SEC-02', secId: sectionsList[1].id, owner: pos[1] },
+    { name: 'ระบบวิจัยโมเดลประเมินราคาที่ดินอัตโนมัติ (AI Valuation)', code: 'PRJ-AI-03', secId: sectionsList[2].id, owner: pos[2] },
+    { name: 'ระบบศูนย์กลางให้บริการราคาประเมินทรัพย์สินแห่งชาติ (Portal)', code: 'PRJ-PORTAL-04', secId: sectionsList[3].id, owner: pos[3] },
+    { name: 'โครงการยกระดับงานสารบรรณอิเล็กทรอนิกส์และฝ่ายบริหารทั่วไป', code: 'PRJ-ADMIN-05', secId: sectionsList[4].id, owner: pos[0] },
   ];
 
   const createdProjects = [];
@@ -152,8 +134,8 @@ async function main() {
       data: {
         name: pt.name,
         code: pt.code,
-        description: `รายละเอียดงานของ ${pt.name} มุ่งเน้นการเพิ่มประสิทธิภาพระดับองค์กร`,
-        sectionId: sectionsMap[pt.sec],
+        description: `รายละเอียดงานของ ${pt.name}`,
+        sectionId: pt.secId,
         ownerId: pt.owner.id,
         status: pt.code.endsWith('01') || pt.code.endsWith('02') ? 'IN_PROGRESS' : 'PLANNING',
         startDate: new Date('2026-01-01'),
@@ -165,8 +147,8 @@ async function main() {
     await prisma.projectMember.create({ data: { projectId: prj.id, userId: pt.owner.id, projectRole: 'OWNER' } });
     await prisma.projectMember.create({ data: { projectId: prj.id, userId: sm.id, projectRole: 'SCRUM_MASTER' } });
 
-    const sectionStaff = staffList.filter((s) => s.sectionId === sectionsMap[pt.sec]);
-    for (const staffMember of sectionStaff.slice(0, 4)) {
+    const secStaff = staffList.filter((s) => s.sectionId === pt.secId);
+    for (const staffMember of secStaff.slice(0, 4)) {
       await prisma.projectMember.create({ data: { projectId: prj.id, userId: staffMember.id, projectRole: 'MEMBER' } });
     }
   }
@@ -174,7 +156,6 @@ async function main() {
   // 6. Create Sprints (Weekly & Monthly)
   const mainProject = createdProjects[0];
 
-  // Weekly Sprint
   const weeklySprint = await prisma.sprint.create({
     data: {
       projectId: mainProject.id,
@@ -188,7 +169,6 @@ async function main() {
     },
   });
 
-  // Monthly Sprint
   const monthlySprint = await prisma.sprint.create({
     data: {
       projectId: mainProject.id,
@@ -202,53 +182,59 @@ async function main() {
     },
   });
 
-  // Tasks for Weekly Sprint
-  const weeklyTasks = [
-    { title: 'ออกแบบ Wireframe หน้า Sprint Board รายสัปดาห์', status: 'DONE', priority: 'HIGH', cat: 'DONE' },
-    { title: 'พัฒนา Filter ปุ่มสลับ Sprint รายสัปดาห์ / รายเดือน', status: 'IN_PROGRESS', priority: 'URGENT', cat: 'TODAY' },
-    { title: 'ทดสอบ Drag and Drop บน Weekly Sprint Board', status: 'TODO', priority: 'MEDIUM', cat: 'THIS_WEEK' },
-  ];
+  // 7. Create Sprint Backlog Items
+  const b1 = await prisma.sprintBacklogItem.create({
+    data: {
+      sprintId: weeklySprint.id,
+      title: 'ออกแบบ ER-Diagram ฐานข้อมูลราคาทรัพย์สิน',
+      description: 'รวบรวมฟิลด์และออกแบบความสัมพันธ์ระหว่างตาราง',
+      priority: 'HIGH',
+      status: 'SUCCESS',
+      startDate: new Date('2026-08-01'),
+      endDate: new Date('2026-08-07'),
+    },
+  });
 
-  for (let i = 0; i < weeklyTasks.length; i++) {
-    const t = weeklyTasks[i];
-    await prisma.task.create({
-      data: {
-        sprintId: weeklySprint.id,
-        projectId: mainProject.id,
-        title: `[Weekly] ${t.title}`,
-        status: t.status,
-        priority: t.priority,
-        myTaskCategory: t.cat,
-        assigneeId: staffList[i % staffList.length].id,
-        reporterId: sm.id,
-      },
-    });
-  }
+  const b2 = await prisma.sprintBacklogItem.create({
+    data: {
+      sprintId: weeklySprint.id,
+      title: 'พัฒนา RESTful API สำหรับดึงข้อมูลแปลงที่ดินและราคาประเมิน',
+      description: 'สร้าง RESTful API ดึงข้อมูลความเร็วสูง',
+      priority: 'HIGH',
+      status: 'IN_PROGRESS',
+      startDate: new Date('2026-08-01'),
+      endDate: new Date('2026-08-07'),
+    },
+  });
 
-  // Tasks for Monthly Sprint
-  const monthlyTasks = [
-    { title: 'สรุปภาพรวมแผนงานประจำเดือนสิงหาคม (Monthly Milestone)', status: 'DONE', priority: 'HIGH', cat: 'DONE' },
-    { title: 'ปรับปรุงประสิทธิภาพฐานข้อมูลรองรับ 20+ โครงการ', status: 'IN_PROGRESS', priority: 'URGENT', cat: 'TODAY' },
-    { title: 'ประเมินความเสี่ยงและทบทวน OKRs ประจำเดือน', status: 'IN_REVIEW', priority: 'MEDIUM', cat: 'THIS_WEEK' },
-  ];
+  // 8. Create Tasks
+  await prisma.task.create({
+    data: {
+      projectId: mainProject.id,
+      sprintId: weeklySprint.id,
+      backlogItemId: b1.id,
+      title: 'สอบทาน Schema ตาราง User และ Section',
+      description: 'ตรวจสอบความถูกต้องของ Foreign Keys',
+      status: 'DONE',
+      priority: 'HIGH',
+      assigneeId: users[0].id,
+    },
+  });
 
-  for (let i = 0; i < monthlyTasks.length; i++) {
-    const t = monthlyTasks[i];
-    await prisma.task.create({
-      data: {
-        sprintId: monthlySprint.id,
-        projectId: mainProject.id,
-        title: `[Monthly] ${t.title}`,
-        status: t.status,
-        priority: t.priority,
-        myTaskCategory: t.cat,
-        assigneeId: staffList[(i + 3) % staffList.length].id,
-        reporterId: sm.id,
-      },
-    });
-  }
+  await prisma.task.create({
+    data: {
+      projectId: mainProject.id,
+      sprintId: weeklySprint.id,
+      backlogItemId: b2.id,
+      title: 'ทดสอบประสิทธิภาพการ Query บน Cloudflare D1',
+      description: 'ทดสอบ Query ความเร็วและ Indexing',
+      status: 'IN_PROGRESS',
+      priority: 'MEDIUM',
+      assigneeId: users[0].id,
+    },
+  });
 
-  console.log('Seeding completed successfully with Weekly & Monthly Sprints!');
+  console.log('Seeding completed successfully with Master Data Sections 100% matched!');
 }
 
 main()
