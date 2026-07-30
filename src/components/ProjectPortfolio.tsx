@@ -239,39 +239,7 @@ export default function ProjectPortfolio() {
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row gap-3 items-center justify-between shadow-sm">
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-          <input
-            type="text"
-            placeholder="ค้นหาชื่อโครงการ, รหัสรหัส หรือส่วนงาน..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-          {['ALL', 'DIGITAL', 'INFRA', 'DATA', 'SEC'].map((sec) => (
-            <button
-              key={sec}
-              onClick={() => setSelectedSection(sec)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-                selectedSection === sec
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
-              }`}
-            >
-              {sec === 'ALL' && 'ทุกส่วนงาน (All)'}
-              {sec === 'DIGITAL' && 'นวัตกรรมดิจิทัล'}
-              {sec === 'INFRA' && 'โครงสร้างพื้นฐาน'}
-              {sec === 'DATA' && 'การจัดการข้อมูล'}
-              {sec === 'SEC' && 'ความมั่นคงปลอดภัย'}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Projects Grid */}
       {loading ? (
