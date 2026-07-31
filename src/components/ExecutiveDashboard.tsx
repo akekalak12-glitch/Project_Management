@@ -151,9 +151,25 @@ export default function ExecutiveDashboard() {
   const overallTaskProgress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
   const accessibleSprints = allSprints.filter((s: any) => accessibleProjectIds2.has(s.projectId));
   const totalSprints = accessibleSprints.length;
-  // People without assigned tasks
-  const assignedUserIds = new Set(accessibleTasks.filter((t: any) => t.assigneeId).map((t: any) => t.assigneeId));
-  const unassignedPeople = allUsers.filter((u: any) => !assignedUserIds.has(u.id)).length;
+  // People without assigned tasks (checks both the primary assigneeId and
+  // the full multi-assignee list, since a task can have several co-assignees)
+  const assignedUserIds = new Set<string>();
+  accessibleTasks.forEach((t: any) => {
+    if (t.assigneeId) assignedUserIds.add(t.assigneeId);
+    (t.assignees || []).forEach((a: any) => {
+      const uid = a.userId || a.user?.id;
+      if (uid) assignedUserIds.add(uid);
+    });
+  });
+  // ยกเว้น ผอ.กองมาตรฐานการประเมินราคาทรัพย์สิน (หัวหน้าส่วนงานที่กำกับดูแล ไม่ใช่ผู้ปฏิบัติงาน)
+  // และผู้เชี่ยวชาญ (ที่ปรึกษา ไม่ได้รับมอบหมาย Task โดยตรง) ออกจากการนับ "คนที่ไม่มี Task"
+  const unassignedPeople = allUsers.filter((u: any) => {
+    if (assignedUserIds.has(u.id)) return false;
+    const isAdvisor = u.role?.key === 'ADVISOR';
+    const isStandardsSectionDirector =
+      u.role?.key === 'SUPER_ADMIN' && u.section?.name === KPI_EXCLUDED_SECTION_NAME;
+    return !isAdvisor && !isStandardsSectionDirector;
+  }).length;
 
   // Team & Task Assignment Summary: for every accessible project, list its
   // lead (owner) plus every team member, the real tasks assigned to each of
