@@ -2,21 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { Target, TrendingUp, AlertTriangle, CheckCircle2, Building2, FolderKanban, BarChart3, Lock, Users, CalendarClock } from 'lucide-react';
+import { Target, TrendingUp, AlertTriangle, CheckCircle2, Building2, FolderKanban, BarChart3, Lock, Users, Gauge } from 'lucide-react';
 
-interface OKRItem {
-  id: string;
-  objective: string;
-  keyResult: string;
-  targetValue: number;
-  currentValue: number;
-  unit: string;
-  progress: number;
-  status: string;
-  projectId?: string;
-  project?: { name: string; code: string };
-  section?: { name: string; code: string };
-}
+// Individual KPI dashboard excludes staff belonging to this section (the
+// standards/oversight section itself, whose staff assign and review work
+// rather than being measured by it).
+const KPI_EXCLUDED_SECTION_NAME = 'กองมาตรฐานการประเมินราคาทรัพย์สิน';
 
 interface ProjectSummary {
   id: string;
@@ -75,58 +66,35 @@ function computePersonPerformance(tasksForPerson: any[]) {
   return { assignedCount, doneCount, onTimeRate, performanceScore };
 }
 
-// Compares a project's real Sprint/Task timeline against "now" to see whether
-// the pace of actual completion is keeping up with the target schedule —
-// this is what drives the OKR risk assessment below (rather than a single
-// static stored status).
-function computeProjectTimelineRisk(prj: any, tasksForPrj: any[], sprintsForPrj: any[]) {
-  const now = new Date();
-  const startDate = prj.startDate ? new Date(prj.startDate) : null;
+// Individual KPI: assigned / done / on-time-done counts plus a combined
+// 0-100 performance score, for one person across ALL of their tasks
+// (org-wide, not scoped to one project). "On time" credit requires the
+// task to be DONE; if it has no dueDate at all it is given full on-time
+// credit (there's nothing to have been late against). The score blends
+// completion rate and on-time rate 50/50, both measured against the
+// total assigned count (not just against done tasks), so someone who
+// completes a lot of work late still scores lower than someone who
+// completes the same amount on schedule.
+function computeIndividualKpi(tasksForPerson: any[]) {
+  const assignedCount = tasksForPerson.length;
+  const doneCount = tasksForPerson.filter((t) => t.status === 'DONE').length;
+  const onTimeCount = tasksForPerson.filter(
+    (t) => t.status === 'DONE' && (!t.dueDate || new Date(t.updatedAt) <= new Date(t.dueDate))
+  ).length;
 
-  const endDateCandidates: Date[] = [];
-  if (prj.endDate) endDateCandidates.push(new Date(prj.endDate));
-  sprintsForPrj.forEach((s: any) => {
-    if (s.endDate) endDateCandidates.push(new Date(s.endDate));
-  });
-  const endDate = endDateCandidates.length > 0
-    ? new Date(Math.max(...endDateCandidates.map((d) => d.getTime())))
-    : null;
-
-  const overdueSprints = sprintsForPrj.filter(
-    (s: any) => s.endDate && new Date(s.endDate) < now && s.status !== 'COMPLETED'
-  );
-  const overdueTasks = tasksForPrj.filter(
-    (t: any) => t.dueDate && new Date(t.dueDate) < now && t.status !== 'DONE'
-  );
-
-  let expectedProgress: number | null = null;
-  if (startDate && endDate && endDate.getTime() > startDate.getTime()) {
-    const totalMs = endDate.getTime() - startDate.getTime();
-    const elapsedMs = Math.min(Math.max(now.getTime() - startDate.getTime(), 0), totalMs);
-    expectedProgress = Math.round((elapsedMs / totalMs) * 100);
+  if (assignedCount === 0) {
+    return { assignedCount, doneCount, onTimeCount, completionRate: null as number | null, onTimeRate: null as number | null, performanceScore: null as number | null };
   }
 
-  return { endDate, overdueSprints, overdueTasks, expectedProgress };
-}
+  const completionRate = Math.round((doneCount / assignedCount) * 100);
+  const onTimeRate = Math.round((onTimeCount / assignedCount) * 100);
+  const performanceScore = Math.round(completionRate * 0.5 + onTimeRate * 0.5);
 
-function deriveOkrStatus(actualProgress: number, risk: ReturnType<typeof computeProjectTimelineRisk> | null): string {
-  if (actualProgress >= 100) return 'COMPLETED';
-  if (!risk) return actualProgress >= 40 ? 'ON_TRACK' : 'AT_RISK';
-  const now = new Date();
-  if (risk.endDate && now.getTime() > risk.endDate.getTime()) return 'BEHIND';
-  if (risk.overdueTasks.length > 0 || risk.overdueSprints.length > 0) return 'AT_RISK';
-  if (risk.expectedProgress !== null && actualProgress < risk.expectedProgress - 15) return 'AT_RISK';
-  return 'ON_TRACK';
-}
-
-function formatThaiDate(d: Date | null): string {
-  if (!d) return '-';
-  return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+  return { assignedCount, doneCount, onTimeCount, completionRate, onTimeRate, performanceScore };
 }
 
 export default function ExecutiveDashboard() {
   const { currentUser, isExecutive, isAdvisor } = useAuth();
-  const [okrs, setOkrs] = useState<OKRItem[]>([]);
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [allTasks, setAllTasks] = useState<any[]>([]);
   const [allSprints, setAllSprints] = useState<any[]>([]);
@@ -137,17 +105,12 @@ export default function ExecutiveDashboard() {
   // dashboard reflects real current state after edits made elsewhere.
   const loadData = async () => {
     try {
-      const [resOkrs, resPrj, resTasks, resSprints, resUsers] = await Promise.all([
-        fetch('/api/okrs'),
+      const [resPrj, resTasks, resSprints, resUsers] = await Promise.all([
         fetch('/api/projects'),
         fetch('/api/tasks'),
         fetch('/api/sprints'),
         fetch('/api/users'),
       ]);
-      if (resOkrs.ok) {
-        const dataOkrs: any = await resOkrs.json();
-        if (dataOkrs.success && Array.isArray(dataOkrs.data)) setOkrs(dataOkrs.data);
-      }
       if (resPrj.ok) {
         const dataPrj: any = await resPrj.json();
         if (dataPrj.success && Array.isArray(dataPrj.data)) setProjects(dataPrj.data);
@@ -181,51 +144,6 @@ export default function ExecutiveDashboard() {
     };
   }, []);
 
-  // The OKR tracking table needs real, project-linked rows. Any project that
-  // doesn't have a corresponding OKR yet gets one auto-created (persisted to
-  // the DB via POST /api/okrs, linked by projectId) so the table always
-  // reflects the real project list instead of staying empty. This only runs
-  // for exec/advisor users (the only roles that can see this dashboard) and
-  // is a no-op once every project has a linked OKR.
-  useEffect(() => {
-    const ensureOkrsForProjects = async () => {
-      if (projects.length === 0) return;
-      const existingProjectIds = new Set(okrs.filter((o) => o.projectId).map((o) => o.projectId));
-      const missing = projects.filter((p) => !existingProjectIds.has(p.id));
-      if (missing.length === 0) return;
-
-      for (const prj of missing) {
-        try {
-          await fetch('/api/okrs', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              objective: `บรรลุเป้าหมายความสำเร็จของโครงการ: ${prj.name}`,
-              keyResult: 'สัดส่วน Task ที่ดำเนินการสำเร็จเทียบกับแผนงานทั้งหมดของโครงการ',
-              targetValue: 100,
-              currentValue: prj.progress || 0,
-              unit: '%',
-              projectId: prj.id,
-            }),
-          });
-        } catch (e) {
-          console.error('Failed to auto-generate OKR for project', prj.id, e);
-        }
-      }
-
-      try {
-        const res = await fetch('/api/okrs');
-        if (res.ok) {
-          const data: any = await res.json();
-          if (data.success && Array.isArray(data.data)) setOkrs(data.data);
-        }
-      } catch (e) {
-        console.error('Failed to refresh OKRs after auto-generation', e);
-      }
-    };
-    ensureOkrsForProjects();
-  }, [projects, okrs.length]);
-
   const isFullAccessUser = isExecutive || isAdvisor;
 
   const accessibleProjects = isFullAccessUser
@@ -238,16 +156,8 @@ export default function ExecutiveDashboard() {
 
   const accessibleProjectIds = new Set(accessibleProjects.map((p) => p.id));
 
-  const accessibleOkrs = isFullAccessUser
-    ? okrs
-    : okrs.filter((o) => !o.projectId || accessibleProjectIds.has(o.projectId));
-
   const totalProjects = accessibleProjects.length;
   const inProgressProjects = accessibleProjects.filter((p) => p.status === 'IN_PROGRESS').length;
-  const avgOkrProgress = accessibleOkrs.length > 0
-    ? Math.round(accessibleOkrs.reduce((acc, curr) => acc + curr.progress, 0) / accessibleOkrs.length)
-    : 0;
-  const atRiskOkrs = accessibleOkrs.filter((o) => o.status === 'AT_RISK' || o.status === 'BEHIND').length;
 
   // Task & Sprint metrics
   const accessibleProjectIds2 = new Set(accessibleProjects.map((p) => p.id));
@@ -302,6 +212,33 @@ export default function ExecutiveDashboard() {
       };
     });
   });
+
+  // Individual KPI: every user in the system (org-wide, not limited to the
+  // projects rendered above) except staff belonging to the excluded
+  // section, each measured against ALL of their assigned tasks.
+  const kpiRows = allUsers
+    .filter((u: any) => u.section?.name !== KPI_EXCLUDED_SECTION_NAME)
+    .map((u: any) => {
+      const personTasks = allTasks.filter(
+        (t: any) =>
+          t.assigneeId === u.id ||
+          (t.assignees || []).some((a: any) => a.userId === u.id || a.user?.id === u.id)
+      );
+      const kpi = computeIndividualKpi(personTasks);
+      return {
+        userId: u.id,
+        userName: u.name,
+        avatarUrl: u.avatarUrl,
+        sectionName: u.section?.name || '-',
+        ...kpi,
+      };
+    })
+    .sort((a, b) => {
+      if (a.performanceScore === null && b.performanceScore === null) return a.userName.localeCompare(b.userName);
+      if (a.performanceScore === null) return 1;
+      if (b.performanceScore === null) return -1;
+      return a.performanceScore - b.performanceScore;
+    });
 
   if (loading) {
     return (
@@ -637,107 +574,80 @@ export default function ExecutiveDashboard() {
         </div>
       </div>
 
-      {/* OKR Progress List */}
+      {/* Individual KPI Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-blue-400" />
-            <h2 className="text-base font-bold text-white">ตารางติดตามความก้าวหน้า OKRs</h2>
+            <Gauge className="w-5 h-5 text-blue-400" />
+            <h2 className="text-base font-bold text-white">ตาราง KPI รายบุคคล</h2>
           </div>
-          <span className="text-xs text-slate-400">({accessibleOkrs.length} รายการ)</span>
+          <span className="text-xs text-slate-400">
+            ({kpiRows.length} คน · ไม่รวมสังกัด{KPI_EXCLUDED_SECTION_NAME})
+          </span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="bg-slate-950 text-slate-400 font-semibold uppercase text-[11px] border-b border-slate-800">
               <tr>
-                <th className="py-3 px-4">เป้าหมาย (Objective & Key Result)</th>
-                <th className="py-3 px-4">โครงการ / สังกัด</th>
-                <th className="py-3 px-4">เป้าหมาย vs ปัจจุบัน</th>
-                <th className="py-3 px-4">ความก้าวหน้า (%)</th>
-                <th className="py-3 px-4">กำหนดเวลา &amp; ความเสี่ยง</th>
-                <th className="py-3 px-4 text-right">สถานะ</th>
+                <th className="py-3 px-4">ชื่อ-สกุล</th>
+                <th className="py-3 px-4">สังกัด</th>
+                <th className="py-3 px-4 text-center">จำนวน Task ที่ได้รับมอบหมาย</th>
+                <th className="py-3 px-4 text-center">จำนวน Task ที่ทำสำเร็จ</th>
+                <th className="py-3 px-4 text-center">Task ที่ทำสำเร็จตรงเวลา</th>
+                <th className="py-3 px-4 text-right">คะแนนประสิทธิภาพ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {accessibleOkrs.map((item) => {
-                const linkedProject = item.projectId
-                  ? accessibleProjects.find((p: any) => p.id === item.projectId)
-                  : null;
-                const prjTasks = linkedProject ? allTasks.filter((t: any) => t.projectId === linkedProject.id) : [];
-                const prjSprints = linkedProject ? allSprints.filter((s: any) => s.projectId === linkedProject.id) : [];
-                const donePrjTasks = prjTasks.filter((t: any) => t.status === 'DONE');
-                const liveProgress = linkedProject
-                  ? prjTasks.length > 0
-                    ? Math.round((donePrjTasks.length / prjTasks.length) * 100)
-                    : (linkedProject.progress || 0)
-                  : item.progress;
-                const risk = linkedProject ? computeProjectTimelineRisk(linkedProject, prjTasks, prjSprints) : null;
-                const liveStatus = deriveOkrStatus(liveProgress, risk);
-
-                return (
-                  <tr key={item.id} className="hover:bg-slate-800/40 transition-all">
-                    <td className="py-3.5 px-4">
-                      <h4 className="font-bold text-white text-xs">{item.objective}</h4>
-                      <p className="text-slate-400 text-[11px] mt-0.5">{item.keyResult}</p>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="font-semibold text-blue-300">{item.project?.name || 'ยุทธศาสตร์กลาง'}</span>
-                      <p className="text-[10px] text-slate-400">{item.section?.name}</p>
-                    </td>
-                    <td className="py-3.5 px-4 font-mono">
-                      <span className="text-white font-bold">{liveProgress}</span> / {item.targetValue} {item.unit}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                          <div
-                            className="bg-blue-500 h-full rounded-full"
-                            style={{ width: `${Math.min(liveProgress, 100)}%` }}
-                          />
-                        </div>
-                        <span className="font-bold text-white text-xs">{liveProgress}%</span>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      {risk ? (
-                        <div className="flex items-start gap-1.5 text-[10px] text-slate-400">
-                          <CalendarClock className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
-                          <div>
-                            <p>ครบกำหนด: <span className="text-slate-300 font-semibold">{formatThaiDate(risk.endDate)}</span></p>
-                            {(risk.overdueSprints.length > 0 || risk.overdueTasks.length > 0) && (
-                              <p className="text-rose-400 font-semibold">
-                                Sprint เกินกำหนด {risk.overdueSprints.length} · Task เกินกำหนด {risk.overdueTasks.length}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-slate-600 text-[10px]">-</span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
+              {kpiRows.map((row) => (
+                <tr key={row.userId} className="hover:bg-slate-800/40 transition-all">
+                  <td className="py-3.5 px-4">
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={row.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${row.userId}`}
+                        alt={row.userName}
+                        className="w-6 h-6 rounded-full border border-slate-700 shrink-0"
+                      />
+                      <span className="font-semibold text-white">{row.userName}</span>
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-4 text-slate-400">{row.sectionName}</td>
+                  <td className="py-3.5 px-4 text-center font-mono font-bold text-white">
+                    {row.assignedCount}
+                  </td>
+                  <td className="py-3.5 px-4 text-center font-mono font-bold text-emerald-400">
+                    {row.doneCount}
+                  </td>
+                  <td className="py-3.5 px-4 text-center font-mono font-bold text-blue-400">
+                    {row.onTimeCount}
+                  </td>
+                  <td className="py-3.5 px-4 text-right">
+                    {row.performanceScore === null ? (
+                      <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                        ยังไม่มีงาน
+                      </span>
+                    ) : (
                       <span
                         className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded border ${
-                          liveStatus === 'ON_TRACK'
+                          row.performanceScore >= 80
                             ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                            : liveStatus === 'COMPLETED'
+                            : row.performanceScore >= 50
                             ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-                            : liveStatus === 'AT_RISK'
+                            : row.performanceScore >= 25
                             ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
                             : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
                         }`}
                       >
-                        {liveStatus}
+                        {row.performanceScore}%
                       </span>
-                    </td>
-                  </tr>
-                );
-              })}
-              {accessibleOkrs.length === 0 && (
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {kpiRows.length === 0 && (
                 <tr>
                   <td colSpan={6} className="py-6 px-4 text-center text-slate-500">
-                    ไม่พบข้อมูล OKR ในโครงการที่เข้าถึงได้
+                    ไม่พบข้อมูลพนักงานที่เข้าเกณฑ์
                   </td>
                 </tr>
               )}
