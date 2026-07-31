@@ -9,6 +9,19 @@ import { Target, TrendingUp, AlertTriangle, CheckCircle2, Building2, FolderKanba
 // rather than being measured by it).
 const KPI_EXCLUDED_SECTION_NAME = 'กองมาตรฐานการประเมินราคาทรัพย์สิน';
 
+const TASK_STATUS_CHIP: Record<string, string> = {
+  DONE: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  IN_REVIEW: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+  IN_PROGRESS: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  TODO: 'bg-slate-800 text-slate-400 border-slate-700',
+};
+const TASK_PRIORITY_CHIP: Record<string, string> = {
+  URGENT: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+  HIGH: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  MEDIUM: 'bg-slate-800 text-slate-400 border-slate-700',
+  LOW: 'bg-slate-800 text-slate-500 border-slate-700',
+};
+
 interface ProjectSummary {
   id: string;
   name: string;
@@ -206,6 +219,37 @@ export default function ExecutiveDashboard() {
         tasks: personTasks,
       };
     });
+  });
+
+  // Flatten the per-person summary above into one row per task (or one
+  // placeholder row for people with none), so "ใคร" (who) and the task's
+  // own fields render in clean, separate, aligned columns instead of being
+  // stacked/crammed together inside a single cell. Project/person cells use
+  // rowSpan so they only print once per group.
+  const projectRowSpanTotals = new Map<string, number>();
+  teamAssignmentRows.forEach((row) => {
+    const n = Math.max(row.tasks.length, 1);
+    projectRowSpanTotals.set(row.projectId, (projectRowSpanTotals.get(row.projectId) || 0) + n);
+  });
+
+  const teamTaskDetailRows = teamAssignmentRows.flatMap((row, rowIdx) => {
+    const prevRow = teamAssignmentRows[rowIdx - 1];
+    const isFirstRowOfProject = !prevRow || prevRow.projectId !== row.projectId;
+    const personRowSpan = Math.max(row.tasks.length, 1);
+    const items = row.tasks.length > 0 ? row.tasks : [null];
+
+    return items.map((t: any, i: number) => ({
+      key: `${row.projectId}-${row.userId}-${t ? t.id : 'none'}-${i}`,
+      projectId: row.projectId,
+      projectName: row.projectName,
+      projectCode: row.projectCode,
+      projectRowSpan: isFirstRowOfProject && i === 0 ? (projectRowSpanTotals.get(row.projectId) ?? 1) : 0,
+      userId: row.userId,
+      userName: row.userName,
+      roleLabel: row.roleLabel,
+      personRowSpan: i === 0 ? personRowSpan : 0,
+      task: t,
+    }));
   });
 
   // Individual KPI: every user in the system (org-wide, not limited to the
@@ -433,105 +477,93 @@ export default function ExecutiveDashboard() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
+          <table className="w-full table-fixed text-left text-xs text-slate-300">
+            <colgroup>
+              <col className="w-[16%]" />
+              <col className="w-[16%]" />
+              <col className="w-[32%]" />
+              <col className="w-[11%]" />
+              <col className="w-[11%]" />
+              <col className="w-[14%]" />
+            </colgroup>
             <thead className="bg-slate-950 text-slate-400 font-semibold uppercase text-[11px] border-b border-slate-800">
               <tr>
                 <th className="py-3 px-4">โครงการ</th>
-                <th className="py-3 px-4">ทีมงาน / บทบาท</th>
-                <th className="py-3 px-4">Task ที่ได้รับมอบหมาย (สถานะ)</th>
-                <th className="py-3 px-4">กำหนดระยะเวลาที่มอบหมายให้แล้วเสร็จ</th>
+                <th className="py-3 px-4">ใคร (ทีมงาน / บทบาท)</th>
+                <th className="py-3 px-4">งาน (Task)</th>
+                <th className="py-3 px-4">สถานะ</th>
+                <th className="py-3 px-4">ความสำคัญ</th>
+                <th className="py-3 px-4">กำหนดเสร็จ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {teamAssignmentRows.map((row, idx) => {
-                const prevRow = teamAssignmentRows[idx - 1];
-                const showProjectCell = !prevRow || prevRow.projectId !== row.projectId;
-                const statusChip: Record<string, string> = {
-                  DONE: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-                  IN_REVIEW: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-                  IN_PROGRESS: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-                  TODO: 'bg-slate-800 text-slate-400 border-slate-700',
-                };
-                const priorityChip: Record<string, string> = {
-                  URGENT: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
-                  HIGH: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-                  MEDIUM: 'bg-slate-800 text-slate-400 border-slate-700',
-                  LOW: 'bg-slate-800 text-slate-500 border-slate-700',
-                };
-                return (
-                  <tr key={`${row.projectId}-${row.userId}`} className="hover:bg-slate-800/40 transition-all align-top">
-                    <td className="py-3.5 px-4 font-bold text-white">
-                      {showProjectCell ? (
-                        <>
-                          <span>{row.projectName}</span>
-                          <span className="ml-2 text-[10px] font-mono text-blue-400 bg-slate-800 px-2 py-0.5 rounded">
-                            {row.projectCode}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-slate-600">↳</span>
-                      )}
+              {teamTaskDetailRows.map((r) => (
+                <tr key={r.key} className="hover:bg-slate-800/40 transition-all align-top">
+                  {r.projectRowSpan > 0 && (
+                    <td
+                      rowSpan={r.projectRowSpan}
+                      className="py-3.5 px-4 font-bold text-white align-top border-r border-slate-800/60"
+                    >
+                      <span>{r.projectName}</span>
+                      <span className="block mt-1 w-fit text-[10px] font-mono text-blue-400 bg-slate-800 px-2 py-0.5 rounded">
+                        {r.projectCode}
+                      </span>
                     </td>
-                    <td className="py-3.5 px-4">
-                      <div>
-                        <p className="font-semibold text-white">{row.userName}</p>
-                        <span
-                          className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
-                            row.roleLabel === 'หัวหน้าโครงการ'
-                              ? 'bg-amber-500/20 text-amber-300'
-                              : 'bg-slate-800 text-slate-400'
-                          }`}
-                        >
-                          {row.roleLabel}
-                        </span>
-                      </div>
+                  )}
+                  {r.personRowSpan > 0 && (
+                    <td
+                      rowSpan={r.personRowSpan}
+                      className="py-3.5 px-4 align-top border-r border-slate-800/60"
+                    >
+                      <p className="font-semibold text-white">{r.userName}</p>
+                      <span
+                        className={`inline-block mt-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
+                          r.roleLabel === 'หัวหน้าโครงการ'
+                            ? 'bg-amber-500/20 text-amber-300'
+                            : 'bg-slate-800 text-slate-400'
+                        }`}
+                      >
+                        {r.roleLabel}
+                      </span>
                     </td>
-                    <td className="py-3.5 px-4">
-                      {row.tasks.length === 0 ? (
-                        <span className="text-slate-500 text-[11px]">ยังไม่มีงานที่มอบหมาย</span>
-                      ) : (
-                        <div className="space-y-1">
-                          {row.tasks.map((t: any) => (
-                            <div key={t.id} className="flex items-center gap-2">
-                              <span
-                                className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border shrink-0 ${
-                                  statusChip[t.status] || statusChip.TODO
-                                }`}
-                              >
-                                {t.status}
-                              </span>
-                              <span
-                                className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border shrink-0 ${
-                                  priorityChip[t.priority] || priorityChip.MEDIUM
-                                }`}
-                              >
-                                {t.priority}
-                              </span>
-                              <span className="text-slate-300 truncate max-w-[220px]">{t.title}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      {row.tasks.length === 0 ? (
-                        <span className="text-slate-500 text-[11px]">-</span>
-                      ) : (
-                        <div className="space-y-1">
-                          {row.tasks.map((t: any) => (
-                            <div key={t.id} className="text-[11px] text-slate-300 whitespace-nowrap">
-                              {formatDeadline(t.dueDate)}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-              {teamAssignmentRows.length === 0 && (
+                  )}
+                  <td className="py-3.5 px-4">
+                    {r.task ? (
+                      <span className="text-slate-200 line-clamp-2">{r.task.title}</span>
+                    ) : (
+                      <span className="text-slate-500 text-[11px]">ยังไม่มีงานที่มอบหมาย</span>
+                    )}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    {r.task && (
+                      <span
+                        className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
+                          TASK_STATUS_CHIP[r.task.status] || TASK_STATUS_CHIP.TODO
+                        }`}
+                      >
+                        {r.task.status}
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    {r.task && (
+                      <span
+                        className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
+                          TASK_PRIORITY_CHIP[r.task.priority] || TASK_PRIORITY_CHIP.MEDIUM
+                        }`}
+                      >
+                        {r.task.priority}
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-3.5 px-4 whitespace-nowrap text-[11px] text-slate-300">
+                    {r.task ? formatDeadline(r.task.dueDate) : <span className="text-slate-500">-</span>}
+                  </td>
+                </tr>
+              ))}
+              {teamTaskDetailRows.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="py-6 px-4 text-center text-slate-500">
+                  <td colSpan={6} className="py-6 px-4 text-center text-slate-500">
                     ไม่พบข้อมูลทีมงานในโครงการที่เข้าถึงได้
                   </td>
                 </tr>
