@@ -258,10 +258,16 @@ export default function ExecutiveDashboard() {
   const kpiRows = allUsers
     .filter((u: any) => u.section?.name !== KPI_EXCLUDED_SECTION_NAME)
     .map((u: any) => {
-      const personTasks = allTasks.filter(
-        (t: any) =>
-          t.assigneeId === u.id ||
-          (t.assignees || []).some((a: any) => a.userId === u.id || a.user?.id === u.id)
+      // ผอ.ส่วน (PROJECT_OWNER) และหัวหน้าฝ่าย (SCRUM_MASTER) มักถูกใส่เป็นผู้ร่วมงาน
+      // (co-assignee) ในแทบทุก Task ของโครงการที่ตนดูแลโดยอัตโนมัติ ทั้งที่ไม่ได้
+      // เป็นผู้ปฏิบัติงานจริงในแต่ละ Task นั้น ๆ จึงให้นับเฉพาะ Task ที่ระบุตัวเขา
+      // เป็นผู้รับผิดชอบหลัก (assigneeId) เท่านั้น ไม่นับจากการเป็นผู้ร่วมงานทั่วไป
+      const isManagerRole = u.role?.key === 'PROJECT_OWNER' || u.role?.key === 'SCRUM_MASTER';
+      const personTasks = allTasks.filter((t: any) =>
+        isManagerRole
+          ? t.assigneeId === u.id
+          : t.assigneeId === u.id ||
+            (t.assignees || []).some((a: any) => a.userId === u.id || a.user?.id === u.id)
       );
       const kpi = computeIndividualKpi(personTasks);
       return {
