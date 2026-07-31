@@ -303,7 +303,7 @@ export default function ProjectPortfolio() {
                     <Building2 className="w-3.5 h-3.5 text-slate-500" />
                     {p.section.name}
                   </span>
-                  <span className="text-slate-300 font-medium">ผอ.ส่วน: {p.owner.name}</span>
+                  <span className="text-slate-300 font-medium">หัวหน้าโครงการ: {p.owner.name}</span>
                 </div>
 
                 {/* Team Members Summary & Action */}

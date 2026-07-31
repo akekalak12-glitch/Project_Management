@@ -90,14 +90,8 @@ export async function POST(request: Request) {
       },
     });
 
-    // Automatically add Owner as member
-    await prisma.projectMember.create({
-      data: {
-        projectId: project.id,
-        userId: body.ownerId,
-        projectRole: 'OWNER',
-      },
-    });
+    // หัวหน้าโครงการ (Project Owner) จะไม่ถูกเพิ่มเข้าทีมงานอัตโนมัติ
+    // ต้องเลือกเข้าทีมงานด้วยตนเองผ่านหน้าตั้งทีมงาน (Manual only)
 
     return NextResponse.json({ success: true, data: project });
   } catch (error: any) {

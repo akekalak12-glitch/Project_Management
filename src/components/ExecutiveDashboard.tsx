@@ -367,7 +367,7 @@ export default function ExecutiveDashboard() {
                     </td>
                     <td className="py-3.5 px-4">
                       <span className="text-slate-300">{prj.section?.name}</span>
-                      <p className="text-[10px] text-slate-400">ผอ.ส่วน: {prj.owner?.name}</p>
+                      <p className="text-[10px] text-slate-400">หัวหน้าโครงการ: {prj.owner?.name}</p>
                     </td>
                     <td className="py-3.5 px-4 text-center font-mono font-bold text-emerald-400">
                       {prjTasks.length > 0
