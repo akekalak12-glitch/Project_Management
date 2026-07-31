@@ -41,21 +41,20 @@ export async function POST(
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     const ownerId = project?.ownerId;
 
-    // Ensure ownerId is always preserved in userIds list
-    const updatedUserIds = ownerId && !userIds.includes(ownerId) ? [...userIds, ownerId] : userIds;
+    // ทีมงานเลือกด้วย manual เท่านั้น ไม่บังคับผูก ผอ.ส่วน/หัวหน้าโครงการ เข้าทีมงานอัตโนมัติ
+    // และสามารถนำ ผอ.ส่วน ออกจากทีมงานได้ตามที่เลือกจริง
 
-    // Delete members not in new userIds list (except OWNER)
+    // Delete members not in the new userIds list
     await prisma.projectMember.deleteMany({
       where: {
         projectId,
-        projectRole: { not: 'OWNER' },
-        userId: { notIn: updatedUserIds },
+        userId: { notIn: userIds },
       },
     });
 
     // Add or update members
     const results = [];
-    for (const userId of updatedUserIds) {
+    for (const userId of userIds) {
       const isOwner = userId === ownerId;
       const roleToSave = isOwner ? 'OWNER' : projectRole;
 
