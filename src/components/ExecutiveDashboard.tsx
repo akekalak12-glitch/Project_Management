@@ -416,6 +416,12 @@ export default function ExecutiveDashboard() {
                   IN_PROGRESS: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
                   TODO: 'bg-slate-800 text-slate-400 border-slate-700',
                 };
+                const priorityChip: Record<string, string> = {
+                  URGENT: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+                  HIGH: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+                  MEDIUM: 'bg-slate-800 text-slate-400 border-slate-700',
+                  LOW: 'bg-slate-800 text-slate-500 border-slate-700',
+                };
                 return (
                   <tr key={`${row.projectId}-${row.userId}`} className="hover:bg-slate-800/40 transition-all align-top">
                     <td className="py-3.5 px-4 font-bold text-white">
@@ -464,6 +470,13 @@ export default function ExecutiveDashboard() {
                                 }`}
                               >
                                 {t.status}
+                              </span>
+                              <span
+                                className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border shrink-0 ${
+                                  priorityChip[t.priority] || priorityChip.MEDIUM
+                                }`}
+                              >
+                                {t.priority}
                               </span>
                               <span className="text-slate-300 truncate max-w-[220px]">{t.title}</span>
                             </div>
