@@ -273,10 +273,12 @@ export default function ExecutiveDashboard() {
       };
     })
     .sort((a, b) => {
+      // เรียงจากจำนวน Task ที่ได้รับมอบหมายมากไปน้อยก่อน แล้วตามด้วยคะแนนประสิทธิภาพมากไปน้อย
+      if (b.assignedCount !== a.assignedCount) return b.assignedCount - a.assignedCount;
       if (a.performanceScore === null && b.performanceScore === null) return a.userName.localeCompare(b.userName);
       if (a.performanceScore === null) return 1;
       if (b.performanceScore === null) return -1;
-      return a.performanceScore - b.performanceScore;
+      return b.performanceScore - a.performanceScore;
     });
 
   if (loading) {
