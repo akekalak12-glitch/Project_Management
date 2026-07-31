@@ -97,6 +97,7 @@ export default function ExecutiveDashboard() {
   const [allSprints, setAllSprints] = useState<any[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [personTablesTab, setPersonTablesTab] = useState<'team' | 'kpi'>('team');
 
   // Always read from the live database rather than a local cache, so this
   // dashboard reflects real current state after edits made elsewhere.
@@ -474,7 +475,32 @@ export default function ExecutiveDashboard() {
         </div>
       </div>
 
+      {/* Tab switcher: Team Assignment table vs Individual KPI table */}
+      <div className="flex items-center gap-2 border-b border-slate-800">
+        <button
+          onClick={() => setPersonTablesTab('team')}
+          className={`px-4 py-2.5 text-sm font-semibold rounded-t-xl border-b-2 transition-all flex items-center gap-2 ${
+            personTablesTab === 'team'
+              ? 'border-purple-500 text-white bg-slate-900'
+              : 'border-transparent text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Users className="w-4 h-4" /> ตารางสรุปทีมงานและงานที่มอบหมายรายบุคคล
+        </button>
+        <button
+          onClick={() => setPersonTablesTab('kpi')}
+          className={`px-4 py-2.5 text-sm font-semibold rounded-t-xl border-b-2 transition-all flex items-center gap-2 ${
+            personTablesTab === 'kpi'
+              ? 'border-blue-500 text-white bg-slate-900'
+              : 'border-transparent text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Gauge className="w-4 h-4" /> ตาราง KPI รายบุคคล
+        </button>
+      </div>
+
       {/* Team & Task Assignment Summary Table */}
+      {personTablesTab === 'team' && (
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
@@ -580,8 +606,10 @@ export default function ExecutiveDashboard() {
           </table>
         </div>
       </div>
+      )}
 
       {/* Individual KPI Table */}
+      {personTablesTab === 'kpi' && (
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
@@ -655,6 +683,7 @@ export default function ExecutiveDashboard() {
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 }
