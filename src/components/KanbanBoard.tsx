@@ -646,7 +646,7 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
                         <div
                           key={col.id}
                           id={col.id}
-                          className={`border ${col.color} rounded-2xl p-4 min-h-[350px] flex flex-col space-y-3 shadow-sm`}
+                          className={`border ${col.color} rounded-2xl p-4 min-h-[350px] max-h-[640px] flex flex-col space-y-3 shadow-sm`}
                         >
                           <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
                             <h4 className="text-xs font-bold text-white uppercase tracking-wider">{col.title}</h4>
