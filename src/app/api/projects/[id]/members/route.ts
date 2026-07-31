@@ -44,6 +44,37 @@ export async function POST(
     // ทีมงานเลือกด้วย manual เท่านั้น ไม่บังคับผูก ผอ.ส่วน/หัวหน้าโครงการ เข้าทีมงานอัตโนมัติ
     // และสามารถนำ ผอ.ส่วน ออกจากทีมงานได้ตามที่เลือกจริง
 
+    // หาว่ามีใครถูกถอดออกจากทีมงานบ้าง เพื่อล้างการมอบหมาย Task ของคนนั้นใน
+    // โครงการนี้ด้วย — ถ้าไม่ใช่ทีมงานของโครงการแล้ว ก็ไม่ควรยังค้างเป็นผู้รับผิดชอบ
+    // หรือผู้ร่วมงานใน Task ของโครงการนั้นอีก (ป้องกันไม่ให้ข้อมูลไม่สอดคล้องกัน)
+    const existingMembers = await prisma.projectMember.findMany({
+      where: { projectId },
+      select: { userId: true },
+    });
+    const removedUserIds = existingMembers
+      .map((m) => m.userId)
+      .filter((uid) => !userIds.includes(uid));
+
+    if (removedUserIds.length > 0) {
+      // ล้างค่าผู้รับผิดชอบหลัก (assigneeId) ของ Task ในโครงการนี้ที่เป็นคนที่ถูกถอดออก
+      await prisma.task.updateMany({
+        where: { projectId, assigneeId: { in: removedUserIds } },
+        data: { assigneeId: null },
+      });
+
+      // ถอดออกจากการเป็นผู้ร่วมงาน (co-assignee) ของ Task ทุกตัวในโครงการนี้ด้วย
+      const projectTasks = await prisma.task.findMany({
+        where: { projectId },
+        select: { id: true },
+      });
+      const projectTaskIds = projectTasks.map((t) => t.id);
+      if (projectTaskIds.length > 0) {
+        await prisma.taskAssignee.deleteMany({
+          where: { taskId: { in: projectTaskIds }, userId: { in: removedUserIds } },
+        });
+      }
+    }
+
     // Delete members not in the new userIds list
     await prisma.projectMember.deleteMany({
       where: {
