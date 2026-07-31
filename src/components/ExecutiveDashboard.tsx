@@ -47,6 +47,34 @@ function computePersonScore(tasksForPerson: any[]): number | null {
   return Math.round(sum / tasksForPerson.length);
 }
 
+// Full performance breakdown for one person's assigned tasks: how many were
+// assigned, how many are done, what fraction of the ones with a due date
+// were actually finished on or before that date (on-time delivery), and a
+// combined 0-100 performance score that blends task-completion status with
+// on-time delivery (60/40 weighting) so someone who finishes late scores
+// lower than someone who finishes the same work on schedule.
+function computePersonPerformance(tasksForPerson: any[]) {
+  const assignedCount = tasksForPerson.length;
+  const doneCount = tasksForPerson.filter((t) => t.status === 'DONE').length;
+  const statusScore = computePersonScore(tasksForPerson);
+
+  const tasksWithDueDate = tasksForPerson.filter((t) => t.dueDate);
+  const onTimeDone = tasksWithDueDate.filter(
+    (t) => t.status === 'DONE' && new Date(t.updatedAt) <= new Date(t.dueDate)
+  );
+  const onTimeRate = tasksWithDueDate.length > 0
+    ? Math.round((onTimeDone.length / tasksWithDueDate.length) * 100)
+    : null;
+
+  const performanceScore = statusScore === null
+    ? null
+    : onTimeRate === null
+    ? statusScore
+    : Math.round(statusScore * 0.6 + onTimeRate * 0.4);
+
+  return { assignedCount, doneCount, onTimeRate, performanceScore };
+}
+
 // Compares a project's real Sprint/Task timeline against "now" to see whether
 // the pace of actual completion is keeping up with the target schedule —
 // this is what drives the OKR risk assessment below (rather than a single
@@ -257,6 +285,7 @@ export default function ExecutiveDashboard() {
           (t.assigneeId === user.id ||
             (t.assignees || []).some((a: any) => a.userId === user.id || a.user?.id === user.id))
       );
+      const perf = computePersonPerformance(personTasks);
       return {
         projectId: prj.id,
         projectName: prj.name,
@@ -266,7 +295,10 @@ export default function ExecutiveDashboard() {
         avatarUrl: user.avatarUrl,
         roleLabel,
         tasks: personTasks,
-        score: computePersonScore(personTasks),
+        assignedCount: perf.assignedCount,
+        doneCount: perf.doneCount,
+        onTimeRate: perf.onTimeRate,
+        score: perf.performanceScore,
       };
     });
   });
@@ -475,7 +507,10 @@ export default function ExecutiveDashboard() {
                 <th className="py-3 px-4">โครงการ</th>
                 <th className="py-3 px-4">ทีมงาน / บทบาท</th>
                 <th className="py-3 px-4">Task ที่ได้รับมอบหมาย (สถานะ)</th>
-                <th className="py-3 px-4 text-right">คะแนนความสำเร็จ</th>
+                <th className="py-3 px-4 text-center">จำนวน Task ที่ได้รับมอบหมาย</th>
+                <th className="py-3 px-4 text-center">จำนวน Task ที่ทำสำเร็จ</th>
+                <th className="py-3 px-4 text-center">ประสิทธิภาพงานเสร็จตามกำหนดเวลา</th>
+                <th className="py-3 px-4 text-right">คะแนนประเมินประสิทธิภาพ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
@@ -543,6 +578,29 @@ export default function ExecutiveDashboard() {
                         </div>
                       )}
                     </td>
+                    <td className="py-3.5 px-4 text-center font-mono font-bold text-white">
+                      {row.assignedCount}
+                    </td>
+                    <td className="py-3.5 px-4 text-center font-mono font-bold text-emerald-400">
+                      {row.doneCount}
+                    </td>
+                    <td className="py-3.5 px-4 text-center">
+                      {row.onTimeRate === null ? (
+                        <span className="text-slate-600 text-[10px]">-</span>
+                      ) : (
+                        <span
+                          className={`text-[10px] font-extrabold px-2 py-0.5 rounded border ${
+                            row.onTimeRate >= 80
+                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                              : row.onTimeRate >= 50
+                              ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                              : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                          }`}
+                        >
+                          {row.onTimeRate}%
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3.5 px-4 text-right">
                       {row.score === null ? (
                         <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
@@ -569,7 +627,7 @@ export default function ExecutiveDashboard() {
               })}
               {teamAssignmentRows.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="py-6 px-4 text-center text-slate-500">
+                  <td colSpan={7} className="py-6 px-4 text-center text-slate-500">
                     ไม่พบข้อมูลทีมงานในโครงการที่เข้าถึงได้
                   </td>
                 </tr>
