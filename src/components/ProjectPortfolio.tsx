@@ -313,24 +313,11 @@ export default function ProjectPortfolio() {
                   <span className="text-slate-300 font-medium">ผอ.ส่วน: {p.owner.name}</span>
                 </div>
 
-                {/* Team Members Avatar Stack & Action */}
+                {/* Team Members Summary & Action */}
                 <div className="flex items-center justify-between pt-1">
-                  <div className="flex items-center -space-x-2 overflow-hidden">
-                    {p.members.slice(0, 4).map((m, idx) => (
-                      <img
-                        key={idx}
-                        src={m.user.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}
-                        alt={m.user.name}
-                        title={m.user.name}
-                        className="inline-block h-7 w-7 rounded-full ring-2 ring-slate-900 bg-slate-800"
-                      />
-                    ))}
-                    {p.members.length > 4 && (
-                      <span className="flex items-center justify-center h-7 w-7 rounded-full ring-2 ring-slate-900 bg-slate-800 text-[10px] font-bold text-slate-300">
-                        +{p.members.length - 4}
-                      </span>
-                    )}
-                  </div>
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-400">
+                    <Users className="w-3.5 h-3.5" /> ทีมงาน {p.members.length} คน
+                  </span>
 
                   {canManageTeam && (
                     <button

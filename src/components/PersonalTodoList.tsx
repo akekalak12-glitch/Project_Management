@@ -129,11 +129,6 @@ export default function PersonalTodoList() {
         </div>
 
         <div className="bg-slate-950/60 border border-slate-800 p-3 rounded-xl flex items-center gap-3">
-          <img
-            src={currentUser?.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}
-            alt="Avatar"
-            className="w-9 h-9 rounded-full border border-blue-500/30 bg-slate-800"
-          />
           <div>
             <span className="text-xs font-bold text-white block">{currentUser?.name}</span>
             <span className="text-[11px] text-emerald-400 font-medium">งานของฉันทั้งหมด: {tasks.length} รายการ</span>

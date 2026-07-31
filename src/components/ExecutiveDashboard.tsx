@@ -30,15 +30,31 @@ function formatDeadline(dueDate: string | null | undefined): string {
   return new Date(dueDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+// Points awarded per completed task, by priority — this is what makes
+// volume AND importance matter: someone assigned many URGENT/HIGH tasks
+// who finishes them on time accumulates points fast and reaches the top
+// of the 0-100 scale, while someone with few, low-priority tasks caps
+// out lower even at 100% completion.
+const KPI_PRIORITY_POINTS: Record<string, number> = {
+  URGENT: 25,
+  HIGH: 20,
+  MEDIUM: 15,
+  LOW: 10,
+};
+const KPI_LATE_MULTIPLIER = 0.5;
+
 // Individual KPI: assigned / done / on-time-done counts plus a combined
 // 0-100 performance score, for one person across ALL of their tasks
-// (org-wide, not scoped to one project). "On time" credit requires the
-// task to be DONE; if it has no dueDate at all it is given full on-time
-// credit (there's nothing to have been late against). The score blends
-// completion rate and on-time rate 50/50, both measured against the
-// total assigned count (not just against done tasks), so someone who
-// completes a lot of work late still scores lower than someone who
-// completes the same amount on schedule.
+// (org-wide, not scoped to one project). Each DONE task contributes
+// points based on its priority (URGENT/HIGH tasks are worth more than
+// LOW/MEDIUM ones); a task finished on or before its due date earns full
+// points, one finished late earns half, and a task with no due date at
+// all gets full credit (nothing to have been late against). Points are
+// summed — not averaged — across every assigned task and capped at 100,
+// so a person handling a large, important workload and delivering it on
+// time scores the highest, exactly matching how this KPI should reward
+// volume + importance + timeliness together rather than treating a
+// single easy task done on time the same as a heavy, urgent workload.
 function computeIndividualKpi(tasksForPerson: any[]) {
   const assignedCount = tasksForPerson.length;
   const doneCount = tasksForPerson.filter((t) => t.status === 'DONE').length;
@@ -47,14 +63,18 @@ function computeIndividualKpi(tasksForPerson: any[]) {
   ).length;
 
   if (assignedCount === 0) {
-    return { assignedCount, doneCount, onTimeCount, completionRate: null as number | null, onTimeRate: null as number | null, performanceScore: null as number | null };
+    return { assignedCount, doneCount, onTimeCount, performanceScore: null as number | null };
   }
 
-  const completionRate = Math.round((doneCount / assignedCount) * 100);
-  const onTimeRate = Math.round((onTimeCount / assignedCount) * 100);
-  const performanceScore = Math.round(completionRate * 0.5 + onTimeRate * 0.5);
+  const totalPoints = tasksForPerson.reduce((acc, t) => {
+    if (t.status !== 'DONE') return acc;
+    const basePoints = KPI_PRIORITY_POINTS[t.priority] ?? KPI_PRIORITY_POINTS.MEDIUM;
+    const onTime = !t.dueDate || new Date(t.updatedAt) <= new Date(t.dueDate);
+    return acc + (onTime ? basePoints : basePoints * KPI_LATE_MULTIPLIER);
+  }, 0);
+  const performanceScore = Math.min(100, Math.round(totalPoints));
 
-  return { assignedCount, doneCount, onTimeCount, completionRate, onTimeRate, performanceScore };
+  return { assignedCount, doneCount, onTimeCount, performanceScore };
 }
 
 export default function ExecutiveDashboard() {
@@ -437,24 +457,17 @@ export default function ExecutiveDashboard() {
                       )}
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={row.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${row.userId}`}
-                          alt={row.userName}
-                          className="w-6 h-6 rounded-full border border-slate-700 shrink-0"
-                        />
-                        <div>
-                          <p className="font-semibold text-white">{row.userName}</p>
-                          <span
-                            className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
-                              row.roleLabel === 'หัวหน้าโครงการ'
-                                ? 'bg-amber-500/20 text-amber-300'
-                                : 'bg-slate-800 text-slate-400'
-                            }`}
-                          >
-                            {row.roleLabel}
-                          </span>
-                        </div>
+                      <div>
+                        <p className="font-semibold text-white">{row.userName}</p>
+                        <span
+                          className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
+                            row.roleLabel === 'หัวหน้าโครงการ'
+                              ? 'bg-amber-500/20 text-amber-300'
+                              : 'bg-slate-800 text-slate-400'
+                          }`}
+                        >
+                          {row.roleLabel}
+                        </span>
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
@@ -540,14 +553,7 @@ export default function ExecutiveDashboard() {
               {kpiRows.map((row) => (
                 <tr key={row.userId} className="hover:bg-slate-800/40 transition-all">
                   <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-2">
-                      <img
-                        src={row.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${row.userId}`}
-                        alt={row.userName}
-                        className="w-6 h-6 rounded-full border border-slate-700 shrink-0"
-                      />
-                      <span className="font-semibold text-white">{row.userName}</span>
-                    </div>
+                    <span className="font-semibold text-white">{row.userName}</span>
                   </td>
                   <td className="py-3.5 px-4 text-slate-400">{row.sectionName}</td>
                   <td className="py-3.5 px-4 text-center font-mono font-bold text-white">

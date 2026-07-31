@@ -293,12 +293,7 @@ export default function MasterDataManagement({ focusSection = 'master' }: Master
             <tbody className="divide-y divide-slate-800/60">
               {users.map((u) => (
                 <tr key={u.id} className="hover:bg-slate-800/40 transition-all">
-                  <td className="p-3 flex items-center gap-3">
-                    <img
-                      src={u.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}
-                      alt="Avatar"
-                      className="w-7 h-7 rounded-full border border-slate-700 bg-slate-800"
-                    />
+                  <td className="p-3">
                     <span className="font-semibold text-white">{u.name}</span>
                   </td>
                   <td className="p-3 text-slate-400">{u.email}</td>

@@ -422,12 +422,7 @@ export default function UserRoleManagement() {
             <tbody className="divide-y divide-slate-800/60">
               {users.map((u) => (
                 <tr key={u.id} className="hover:bg-slate-800/40 transition-all">
-                  <td className="py-3.5 px-4 font-semibold text-white flex items-center gap-2">
-                    <img
-                      src={u.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}
-                      alt="Avatar"
-                      className="w-7 h-7 rounded-full border border-slate-700 bg-slate-800 object-cover"
-                    />
+                  <td className="py-3.5 px-4 font-semibold text-white">
                     <span>{u.name}</span>
                   </td>
 

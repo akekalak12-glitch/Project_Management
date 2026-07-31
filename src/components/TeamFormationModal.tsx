@@ -147,11 +147,6 @@ export default function TeamFormationModal({
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <img
-                        src={u.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}
-                        alt="Avatar"
-                        className="w-8 h-8 rounded-full border border-slate-700 bg-slate-800"
-                      />
                       <div>
                         <h5 className="text-xs font-semibold">{u.name}</h5>
                         <p className="text-[11px] text-slate-400">

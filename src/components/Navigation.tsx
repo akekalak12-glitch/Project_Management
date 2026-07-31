@@ -39,11 +39,6 @@ export default function Navigation({ activeTab, setActiveTab }: NavigationProps)
         {/* User Profile Card with Logout Button */}
         <div className="p-4 border-b border-slate-800 flex items-center justify-between gap-3 bg-slate-950/50">
           <div className="flex items-center gap-3 overflow-hidden">
-            <img
-              src={currentUser?.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}
-              alt="Avatar"
-              className="w-10 h-10 rounded-full border border-blue-500/30 bg-slate-800 object-cover shrink-0"
-            />
             <div className="overflow-hidden">
               <h4 className="text-sm font-semibold text-white truncate">{currentUser?.name || 'กำลังโหลด...'}</h4>
               <div className="flex items-center gap-1.5 mt-0.5">

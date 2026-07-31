@@ -744,17 +744,6 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
                                   <div className="pt-2.5 border-t border-slate-800/60 flex items-center justify-between text-slate-400 text-[11px]">
                                     <div className="flex items-center gap-1.5 min-w-0">
                                       <Users className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                                      <div className="flex -space-x-1.5 overflow-hidden">
-                                        {coAssignees.map((u) => (
-                                          <img
-                                            key={u.id}
-                                            src={u.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}
-                                            alt={u.name}
-                                            title={u.name}
-                                            className="w-5 h-5 rounded-full border border-slate-900 bg-slate-800 object-cover"
-                                          />
-                                        ))}
-                                      </div>
                                       <span className="font-semibold text-slate-200 text-[10px] truncate max-w-[100px]">
                                         {coAssignees.map((u) => u.name).join(', ') || 'ยังไม่ระบุ'}
                                       </span>
@@ -900,11 +889,6 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <img
-                          src={u.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}
-                          alt={u.name}
-                          className="w-5 h-5 rounded-full border border-slate-700"
-                        />
                         <span className="text-xs font-medium">{u.name}</span>
                       </div>
                       {isChecked ? (
