@@ -655,7 +655,7 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
                   {/* Multi-Column Layout (From Left to Right based on Week or Month Slots) */}
                   {isExpanded && (
                     <div className="p-5">
-                      <div className="grid grid-cols-1 md:grid-flow-col auto-cols-fr gap-4 overflow-x-auto pb-4">
+                      <div className="flex flex-nowrap items-start gap-4 overflow-x-auto pb-4">
                         {sprintSlots.map((slot, idx) => {
                           // Filter Backlogs that belong to this Week/Month Slot
                           const slotBacklogs = sprintBacklogs.filter((b) => {
@@ -671,7 +671,7 @@ export default function SprintManagement({ onOpenKanbanForSprint }: SprintManage
                           return (
                             <div
                               key={idx}
-                              className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 flex flex-col space-y-3 min-w-[280px] shadow-sm hover:border-purple-500/30 transition-all"
+                              className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 flex flex-col space-y-3 w-[280px] min-w-[280px] shrink-0 shadow-sm hover:border-purple-500/30 transition-all"
                             >
                               {/* Column Header */}
                               <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
