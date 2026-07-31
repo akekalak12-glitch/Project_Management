@@ -105,20 +105,13 @@ export default function ProjectPortfolio() {
   }, [currentUser?.id]);
 
   const handleModalSectionChange = (secId: string) => {
+    // ส่วนงานที่รับผิดชอบ และ ผอ.ส่วน เลือกไขว้กันได้ ไม่ผูกกัน
     setPrjSecId(secId);
-    const ownerInSec = projectOwners.find((u) => u.sectionId === secId || u.section?.id === secId);
-    if (ownerInSec) {
-      setPrjOwnerId(ownerInSec.id);
-    }
   };
 
   const handleModalOwnerChange = (ownerId: string) => {
+    // ส่วนงานที่รับผิดชอบ และ ผอ.ส่วน เลือกไขว้กันได้ ไม่ผูกกัน
     setPrjOwnerId(ownerId);
-    const chosenOwner = projectOwners.find((u) => u.id === ownerId);
-    const ownerSecId = chosenOwner?.sectionId || chosenOwner?.section?.id;
-    if (ownerSecId) {
-      setPrjSecId(ownerSecId);
-    }
   };
 
   const handleOpenAddProject = () => {
