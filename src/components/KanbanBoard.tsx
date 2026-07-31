@@ -210,6 +210,7 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
     setTaskDesc('');
     setTaskPriority('MEDIUM');
     setTaskStatus('TODO');
+    setTaskDueDate('');
 
     const initProjectId = defaultProjId || (selectedProjectId !== 'ALL' ? selectedProjectId : (projectsWithSprints[0]?.id || projects[0]?.id || ''));
     setModalProjectId(initProjectId);
@@ -337,6 +338,7 @@ export default function KanbanBoard({ initialSprintId }: KanbanBoardProps) {
           backlogItemId: finalBacklogId && finalBacklogId !== 'AUTO_CREATE' ? finalBacklogId : undefined,
           reporterId: currentUser?.id,
           assigneeIds: selectedAssigneeIds,
+          dueDate: taskDueDate || null,
         }),
       });
       const dataTask: any = await resTask.json();
